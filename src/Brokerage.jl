@@ -1,5 +1,6 @@
 module Brokerage
 
-# Write your package code here.
+include("functions.jl")
+export example
 
 end

@@ -2,5 +2,5 @@ using Brokerage
 using Test
 
 @testset "Brokerage.jl" begin
-    # Write your tests here.
+    @test Brokerage.example() == "Hello World!"
 end
