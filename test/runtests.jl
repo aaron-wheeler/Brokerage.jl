@@ -1,6 +1,2 @@
-using Brokerage
-using Test
-
-@testset "Brokerage.jl" begin
-    @test Brokerage.example() == "Hello World!"
-end
+using SafeTestsets
+@safetestset "Specific functions" begin include("specific_f_test.jl") end

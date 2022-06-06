@@ -1,5 +1,3 @@
-function example()
-    println("Hello World!")
+function example(x, y)
+    2x + y
 end
-
-export example
