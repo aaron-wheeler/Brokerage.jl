@@ -1,2 +1,2 @@
 using SafeTestsets
-@safetestset "Specific functions" begin include("specific_f_test.jl") end
+@safetestset "Server initialization" begin include("server_init_test.jl") end
