@@ -4,14 +4,16 @@ module Mapper
 using ..Model, ..Contexts, ..ConnectionPools
 using SQLite, DBInterface, Strapping, Tables
 
-# pod is a specific to key to pool
+# pod is a specific key to a pool of SQLite database connections
 const DB_POOL = Ref{ConnectionPools.Pod{ConnectionPools.Connection{SQLite.DB}}}()
 const COUNTER = Ref{Int64}(0)
 
 # define the relational database (denormalized here - simplified "one album (aka row) per song")
-# check normalized.jl for normalized database where we properly store songs Vector
+# check normalized.jl for normalized database where we properly store songs Vector as seperate tables
+# we use these database connections to store the objects we defined in Model.jl
 # database config options in 2nd line of function:
 # (num of concurrent requests we allow (nthreads here), how long they last for in our connections (60 sec here), ..)
+# the additional execute methods create indices on the columns we'll be filtering on (helps with speed)
 function init(dbfile)
     new = () -> SQLite.DB(dbfile)
     DB_POOL[] = ConnectionPools.Pod(SQLite.DB, Threads.nthreads(), 60, 1000, new)
@@ -48,10 +50,12 @@ function init(dbfile)
     return
 end
 
-# withconnection uses thread safe connection pool
+# withconnection uses thread safe connection pool to pass "db" database connection
+# returns result of DBInterface.execute function and releases connection back to pool
 function execute(sql, params; executemany::Bool=false)
     withconnection(DB_POOL[]) do db
         stmt = DBInterface.prepare(db, sql)
+        println("Statement = ", stmt)
         if executemany
             DBInterface.executemany(stmt, params)
         else
@@ -113,6 +117,7 @@ end
 # uses struct idproperty in Model.jl to do this
 function get(user::User)
     cursor = execute("SELECT * FROM user WHERE username = ?", (user.username,))
+    println("cursor = ", cursor)
     return Strapping.construct(User, cursor)
 end
 

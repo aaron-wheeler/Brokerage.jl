@@ -24,7 +24,10 @@ function addtoken!(resp::HTTP.Response, user::User)
     keyid = first(first(JWT_AUTH_KEYS[].keys))
     sign!(jwt, JWT_AUTH_KEYS[], keyid)
     HTTP.setheader(resp, "Set-Cookie" => "$JWT_TOKEN_COOKIE_NAME=$(join([jwt.header, jwt.payload, jwt.signature], '.')); Expires=$(Dates.format(exp, DATE_FORMAT))")
-    HTTP.setheader(resp, JWT_TOKEN_COOKIE_NAME => join([jwt.header, jwt.payload, jwt.signature], '.'))
+    println("adding token... ")
+    @show resp
+    # HTTP.Cookies.setcookies!(jar::CookieJar, url::URI, headers::Headers)
+
     return resp
 end
 
@@ -33,7 +36,7 @@ struct Unauthenticated <: Exception end
 # parsing token from HTTP request
 function User(req::HTTP.Request)
     if HTTP.hasheader(req, "Cookie")
-        cookies = filter(x->x.name == JWT_TOKEN_COOKIE_NAME, HTTP.cookies(req))
+        cookies = filter(x->x.name == JWT_TOKEN_COOKIE_NAME, HTTP.cookies(req)) 
         if !isempty(cookies) && !isempty(cookies[1].value)
             jwt = JWT(; jwt=cookies[1].value)
             verified = false
@@ -45,17 +48,6 @@ function User(req::HTTP.Request)
                 parts = claims(jwt)
                 return User(parts["uid"], parts["aud"])
             end
-        end
-    elseif HTTP.hasheader(req, JWT_TOKEN_COOKIE_NAME)
-        jwt = JWT(; jwt=String(HTTP.header(req, JWT_TOKEN_COOKIE_NAME)))
-        verified = false
-        for kid in JWT_AUTH_KEYS[].keys
-            validate!(jwt, JWT_AUTH_KEYS[], kid[1])
-            verified |= isverified(jwt)
-        end
-        if verified
-            parts = claims(jwt)
-            return User(parts["uid"], parts["aud"])
         end
     end
     throw(Unauthenticated())
