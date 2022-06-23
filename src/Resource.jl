@@ -12,7 +12,7 @@ const ROUTER = HTTP.Router()
 createAlbum(req) = Service.createAlbum(JSON3.read(req.body))::Album # requestHandler function
 HTTP.register!(ROUTER, "POST", "/album", createAlbum) # when the method is post, we call the above function
 
-getAlbum(req) = Service.getAlbum(parse(Int, HTTP.getparams(req)["id"]))::Album
+getAlbum(req) = Service.getAlbum(parse(Int, HTTP.URIs.splitpath(req.target)[2]))::Album
 HTTP.register!(ROUTER, "GET", "/album/*", getAlbum) # asterick here means match anything after the '/'
 
 # the album must be passed in by the client here 

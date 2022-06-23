@@ -55,7 +55,6 @@ end
 function execute(sql, params; executemany::Bool=false)
     withconnection(DB_POOL[]) do db
         stmt = DBInterface.prepare(db, sql)
-        println("Statement = ", stmt)
         if executemany
             DBInterface.executemany(stmt, params)
         else
@@ -117,7 +116,6 @@ end
 # uses struct idproperty in Model.jl to do this
 function get(user::User)
     cursor = execute("SELECT * FROM user WHERE username = ?", (user.username,))
-    println("cursor = ", cursor)
     return Strapping.construct(User, cursor)
 end
 

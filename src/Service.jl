@@ -54,21 +54,17 @@ function createUser(user)
     @assert haskey(user, :password) && !isempty(user.password)
     user = User(user.username, user.password)
     Mapper.create!(user)
-    println("creating user: ", user)
     return user
 end
 
 # done this way so that we can persist user
 function loginUser(user)
     persistedUser = Mapper.get(user)
-    println(persistedUser)
-    println("persistedUser password:", persistedUser.password)
-    println("user password:", user.password)
     if persistedUser.password == user.password
         persistedUser.password = ""
         return persistedUser
     else
-        println("persistedUser Error")
+        println("persistedUser Login Error: User not recognized")
         throw(Auth.Unauthenticated())
     end
 end

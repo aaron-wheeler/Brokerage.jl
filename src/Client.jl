@@ -11,14 +11,12 @@ const SERVER = Ref{String}("http://localhost:8080")
 function createUser(username, password)
     body = (; username, password=base64encode(password))
     resp = HTTP.post(string(SERVER[], "/user"), [], JSON3.write(body))
-    println("Final createUser() Response: ", resp)
     return JSON3.read(resp.body, User)
 end
 
 function loginUser(username, password)
     body = (; username, password=base64encode(password))
     resp = HTTP.post(string(SERVER[], "/user/login"), [], JSON3.write(body))
-    println("pass")
     return JSON3.read(resp.body, User)
 end
 
