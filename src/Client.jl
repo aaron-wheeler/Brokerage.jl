@@ -7,7 +7,9 @@ using ..Model
 # Ref String so that we can easily change this later, Client.SERVER[] = "http://www.newaddress.com"
 const SERVER = Ref{String}("http://localhost:8080")
 
-# cookies handled this way becuase of google cloud run wiping them in their service
+# The following functions mirror what was written in the Resource module
+# The functions calls are routed to the appropriate method via Resource.jl
+
 function createUser(username, password)
     body = (; username, password=base64encode(password))
     resp = HTTP.post(string(SERVER[], "/user"), [], JSON3.write(body))
@@ -20,8 +22,6 @@ function loginUser(username, password)
     return JSON3.read(resp.body, User)
 end
 
-# the following functions mirror what was written in the Resource module
-# cookies handled this way becuase of google cloud run wiping them in their service
 function createAlbum(name, artist, year, songs)
     body = (; name, artist, year, songs) # JSON3 will serialize this named tuple into a json object for the Resource create album function 
     resp = HTTP.post(string(SERVER[], "/album"), [], JSON3.write(body))

@@ -11,8 +11,7 @@ const COUNTER = Ref{Int64}(0)
 # define the relational database (denormalized here - simplified "one album (aka row) per song")
 # check normalized.jl for normalized database where we properly store songs Vector as seperate tables
 # we use these database connections to store the objects we defined in Model.jl
-# database config options in 2nd line of function:
-# (num of concurrent requests we allow (nthreads here), how long they last for in our connections (60 sec here), ..)
+# database config options in 2nd line of function correspond to Pod Struct defined in ConnectionPools.jl
 # the additional execute methods create indices on the columns we'll be filtering on (helps with speed)
 function init(dbfile)
     new = () -> SQLite.DB(dbfile)

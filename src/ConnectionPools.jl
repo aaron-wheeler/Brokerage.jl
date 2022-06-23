@@ -16,8 +16,8 @@ end
 
 mutable struct Pod{T}
     conns::Channel{T}
-    numactive::Int
-    max::Int
+    numactive::Int # num of concurrent requests we allow (nthreads in our case)
+    max::Int # how long requests last for in our connections (60 sec in our case)
     idle::Int
     reuse::Int
     new::Base.Callable

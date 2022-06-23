@@ -13,7 +13,7 @@ function init(authkeysfile)
 end
 
 # generating a new token for a user
-const DATE_FORMAT = DateFormat("e, dd u yyyy HH:MM:SS G\\MT") # Wed, 21 Oct 2015 07:28:00 GMT
+const DATE_FORMAT = DateFormat("e, dd u yyyy HH:MM:SS G\\MT") # Ex. Thu, 23 Jun 2022 07:28:00 GMT
 const JWT_TOKEN_COOKIE_NAME = "X-Brokerage-Jwt-Token"
 
 # adding in claims 

@@ -29,7 +29,7 @@ using .Resource
 include("Client.jl")
 using .Client
 
-# pass in db as a config here so that we can persist
+# option to pass in db as a config file so that we can persist
 function run(dbfile, authkeysfile)
     Workers.init()
     Mapper.init(dbfile)

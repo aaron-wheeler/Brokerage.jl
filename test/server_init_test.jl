@@ -1,5 +1,6 @@
 using Test, Brokerage
 
+# to init with a new database -> "../test/newdbname.sqlite" 
 const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/albums.sqlite")
 const AUTHFILE = "file://" * joinpath(dirname(pathof(Brokerage)), "../resources/authkeys.json")
 

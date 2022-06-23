@@ -50,7 +50,7 @@ end
 # In Service.jl, it creates and returns the User struct defined in Model.jl
 # it also uses "create!()" from Mapper.jl to write it into the database
 # the User struct is passed into authenticate() and addtoken!() from Auth.jl
-# this will return the response with a set header of the signed token
+# this will return the response with a set header of the signed token (cookie)
 createUser(req) = authenticate(Service.createUser(JSON3.read(req.body))::User)
 HTTP.register!(AUTH_ROUTER, "POST", "/user", createUser)
 
@@ -60,43 +60,7 @@ HTTP.register!(AUTH_ROUTER, "POST", "/user", createUser)
 # a single resultset from the database. Strapping.jl then uses
 # the cursor object to construct and return a Julia Struct.
 # This Julia Struct should be a persisted "aka already created" user
-
 loginUser(req) = authenticate(Service.loginUser(JSON3.read(req.body, User))::User)
-# loginUser(req) = gotchabitch(req)
-# using JWTs
-# function gotchabitch(req::HTTP.Request)
-#     # if HTTP.hasheader(req, "Cookie")
-#     #     println("okay")
-#     # end
-#     # println(HTTP.cookies(req))
-#     # println("==================")
-#     # cookieex = filter(x->x.name == Auth.JWT_TOKEN_COOKIE_NAME, HTTP.cookies(req))
-#     # println(cookieex)
-#     # println("==================")
-#     if HTTP.hasheader(req, "Cookie")
-#         println("yeshasheader")
-#         cookies = filter(x->x.name == Auth.JWT_TOKEN_COOKIE_NAME, HTTP.cookies(req))
-#         println(cookies)
-#         println("==================")
-#         if !isempty(cookies) && !isempty(cookies[1].value)
-#             println("yesnotempty")
-#             jwt = JWT(; jwt=cookies[1].value)
-#             println(jwt)
-#             verified = false
-#             for kid in Auth.JWT_AUTH_KEYS[].keys
-#                 validate!(jwt, Auth.JWT_AUTH_KEYS[], kid[1])
-#                 verified |= isverified(jwt)
-#                 println(verified)
-#             end
-#             if verified
-#                 parts = claims(jwt)
-#                 println(User(parts["uid"], parts["aud"]))
-#                 return
-#             end
-#         end
-#     end
-#     println("unautherror")
-# end
 HTTP.register!(AUTH_ROUTER, "POST", "/user/login", loginUser)
 
 # HTTP RequestHandler middleware
@@ -110,7 +74,6 @@ function requestHandler(req)
         resp = AUTH_ROUTER(req) # passing in RequestHandler (eventually change to StreamHandler?) and request
     catch e
         if e isa Auth.Unauthenticated
-            println("requestHandler Auth error throwing")
             resp = HTTP.Response(401)
         else
             s = IOBuffer()
