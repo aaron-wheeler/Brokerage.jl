@@ -19,7 +19,7 @@ const JWT_TOKEN_COOKIE_NAME = "X-Brokerage-Jwt-Token"
 # adding in claims 
 function addtoken!(resp::HTTP.Response, user::User)
     exp = Dates.now(Dates.UTC) + Dates.Hour(12)
-    payload = Dict("iss"=>"Brokerage.jl", "exp"=>Dates.datetime2unix(exp), "sub"=>"managing albums", "aud"=>user.username, "uid"=>user.id)
+    payload = Dict("iss"=>"Brokerage.jl", "exp"=>Dates.datetime2unix(exp), "sub"=>"managing portfolios", "aud"=>user.username, "uid"=>user.id)
     jwt = JWT(; payload=payload)
     keyid = first(first(JWT_AUTH_KEYS[].keys))
     sign!(jwt, JWT_AUTH_KEYS[], keyid)

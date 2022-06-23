@@ -1,30 +1,30 @@
 using Test, Brokerage
 
 # to init with a new database -> "../test/newdbname.sqlite" 
-const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/albums.sqlite")
+const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/portfolios.sqlite")
 const AUTHFILE = "file://" * joinpath(dirname(pathof(Brokerage)), "../resources/authkeys.json")
 
 server = @async Brokerage.run(DBFILE, AUTHFILE)
 
-Client.createUser("aaron", "password!")
-user = Client.loginUser("aaron", "password!")
+Client.createUser("aaron", "password123")
+user = Client.loginUser("aaron", "password123")
 
-alb1 = Client.createAlbum("Free Yourself Up", "Lake Street Dive", 2018, ["Baby Don't Leave Me Alone With My Thoughts", "Good Kisser"])
+por1 = Client.createPortfolio("Trader 1", 10500, [1, 2])
 
 @testset "Test 1" begin
-    @test Client.pickAlbumToListen() == alb1
-    @test Client.pickAlbumToListen() == alb1
-    @test Client.getAlbum(alb1.id) == alb1
+    @test Client.pickRandomPortfolio() == por1
+    @test Client.pickRandomPortfolio() == por1
+    @test Client.getPortfolio(por1.id) == por1
 end
 
-push!(alb1.songs, "Shame, Shame, Shame")
-alb2 = Client.updateAlbum(alb1)
+push!(por1.holdings, 3)
+por2 = Client.updatePortfolio(por1)
 
 @testset "Test 2" begin
-    @test length(alb2.songs) == 3
-    @test length(Client.getAlbum(alb1.id).songs) == 3
+    @test length(por2.holdings) == 3
+    @test length(Client.getPortfolio(por1.id).holdings) == 3
 end
 
-Client.deleteAlbum(alb1.id)
-alb2 = Client.createAlbum("Haunted Heart", "Charlie Haden Quartet West", 1991, ["Introduction", "Hello My Lovely"])
-@test Client.pickAlbumToListen() == alb2
+Client.deletePortfolio(por1.id)
+por2 = Client.createPortfolio("Trader 2", 9670, [2, 4])
+@test Client.pickRandomPortfolio() == por2

@@ -5,24 +5,27 @@ import Base: ==
 # StructTypes is used by JSON3 to do all of our object serialization
 using StructTypes
 
-export Album, User
+export Portfolio, User
 
-mutable struct Album
+# Brokerage uses 'id' to distinguish between multiple portfolios
+# Brokerage uses 'userid' to connect a Client to a portfolio
+# Clients can use 'name' to connect a Trader/Agent to a portfolio
+# Brokerage uses a universal designated INTEGER id for assets in 'holdings'
+mutable struct Portfolio
     id::Int64 # service-managed
     userid::Int64 # service-managed
     name::String # passed by client
-    artist::String # passed by client
-    year::Int64 # passed by client
+    cash::Int64 # passed by client, TODO: make this BigInt
     timespicked::Int64 # service-managed
-    songs::Vector{String}
+    holdings::Vector{Int64} # TODO: avoid making this 64-bit
 end
 
 # default constructors for JSON3
-==(x::Album, y::Album) = x.id == y.id
-Album() = Album(0, 0, "", "", 0, 0, String[])
-Album(name, artist, year, songs) = Album(0, 0, name, artist, year, 0, songs)
-StructTypes.StructType(::Type{Album}) = StructTypes.Mutable()
-StructTypes.idproperty(::Type{Album}) = :id # for get function in Mapper
+==(x::Portfolio, y::Portfolio) = x.id == y.id
+Portfolio() = Portfolio(0, 0, "", 0, 0, Int[])
+Portfolio(name, cash, holdings) = Portfolio(0, 0, name, cash, 0, holdings)
+StructTypes.StructType(::Type{Portfolio}) = StructTypes.Mutable()
+StructTypes.idproperty(::Type{Portfolio}) = :id # for 'get' function in Mapper
 
 mutable struct User
     id::Int64 # service-managed

@@ -4,48 +4,46 @@ module Service
 using Dates, ExpiringCaches
 using ..Model, ..Mapper, ..Auth
 
-function createAlbum(obj)
+function createPortfolio(obj)
     @assert haskey(obj, :name) && !isempty(obj.name)
-    @assert haskey(obj, :artist) && !isempty(obj.artist)
-    @assert haskey(obj, :songs) && !isempty(obj.songs)
-    @assert haskey(obj, :year) && 1900 < obj.year < Dates.year(Dates.now()) # change to less than or equal to?
-    album = Album(obj.name, obj.artist, obj.year, obj.songs)
-    Mapper.create!(album)
-    return album
+    @assert haskey(obj, :holdings) && !isempty(obj.holdings)
+    @assert haskey(obj, :cash) && 1 < obj.cash < 1000000
+    portfolio = Portfolio(obj.name, obj.cash, obj.holdings)
+    Mapper.create!(portfolio)
+    return portfolio
 end
 
-@cacheable Dates.Hour(1) function getAlbum(id::Int64)::Album
+@cacheable Dates.Hour(1) function getPortfolio(id::Int64)::Portfolio
     Mapper.get(id)
 end
 
 # consistent with model struct, not letting client define their own id, we manage these as a service
-function updateAlbum(id, updated)
-    album = Mapper.get(id)
-    album.name = updated.name
-    album.artist = updated.artist
-    album.year = updated.year
-    album.songs = updated.songs
-    Mapper.update(album)
-    delete!(ExpiringCaches.getcache(getAlbum), (id,))
-    return album
+function updatePortfolio(id, updated)
+    portfolio = Mapper.get(id)
+    portfolio.name = updated.name
+    portfolio.cash = updated.cash
+    portfolio.holdings = updated.holdings
+    Mapper.update(portfolio)
+    delete!(ExpiringCaches.getcache(getPortfolio), (id,))
+    return portfolio
 end
 
-function deleteAlbum(id)
+function deletePortfolio(id)
     Mapper.delete(id)
-    delete!(ExpiringCaches.getcache(getAlbum), (id,))
+    delete!(ExpiringCaches.getcache(getPortfolio), (id,))
     return
 end
 
-function pickAlbumToListen()
-    albums = Mapper.getAllAlbums()
-    leastTimesPicked = minimum(x->x.timespicked, albums)
-    leastPickedAlbums = filter(x->x.timespicked == leastTimesPicked, albums)
-    pickedAlbum = rand(leastPickedAlbums)
-    pickedAlbum.timespicked += 1
-    Mapper.update(pickedAlbum)
-    delete!(ExpiringCaches.getcache(getAlbum), (pickedAlbum.id,))
-    @info "picked album = $(pickedAlbum.name) on thread = $(Threads.threadid())"
-    return pickedAlbum
+function pickRandomPortfolio()
+    portfolios = Mapper.getAllPortfolios()
+    leastTimesPicked = minimum(x->x.timespicked, portfolios)
+    leastPickedPortfolio = filter(x->x.timespicked == leastTimesPicked, portfolios)
+    pickedPortfolio = rand(leastPickedPortfolio)
+    pickedPortfolio.timespicked += 1
+    Mapper.update(pickedPortfolio)
+    delete!(ExpiringCaches.getcache(getPortfolio), (pickedPortfolio.id,))
+    @info "picked portfolio = $(pickedPortfolio.name) on thread = $(Threads.threadid())"
+    return pickedPortfolio
 end
 
 # creates User struct defined in Model.jl

@@ -4,7 +4,7 @@ using HTTP, JSON3, Base64
 using ..Model
 
 # server running on same host as client, listening on port 8080
-# Ref String so that we can easily change this later, Client.SERVER[] = "http://www.newaddress.com"
+# Ref String - we can easily change this later, Client.SERVER[] = "http://www.newaddress.com"
 const SERVER = Ref{String}("http://localhost:8080")
 
 # The following functions mirror what was written in the Resource module
@@ -22,30 +22,30 @@ function loginUser(username, password)
     return JSON3.read(resp.body, User)
 end
 
-function createAlbum(name, artist, year, songs)
-    body = (; name, artist, year, songs) # JSON3 will serialize this named tuple into a json object for the Resource create album function 
-    resp = HTTP.post(string(SERVER[], "/album"), [], JSON3.write(body))
-    return JSON3.read(resp.body, Album)
+function createPortfolio(name, cash, holdings)
+    body = (; name, cash, holdings) # JSON3 will serialize this named tuple into a json object for the Resource create portfolio function 
+    resp = HTTP.post(string(SERVER[], "/portfolio"), [], JSON3.write(body))
+    return JSON3.read(resp.body, Portfolio)
 end
 
-function getAlbum(id)
-    resp = HTTP.get(string(SERVER[], "/album/$id"))
-    return JSON3.read(resp.body, Album)
+function getPortfolio(id)
+    resp = HTTP.get(string(SERVER[], "/portfolio/$id"))
+    return JSON3.read(resp.body, Portfolio)
 end
 
-function updateAlbum(album)
-    resp = HTTP.put(string(SERVER[], "/album/$(album.id)"), [], JSON3.write(album))
-    return JSON3.read(resp.body, Album)
+function updatePortfolio(portfolio)
+    resp = HTTP.put(string(SERVER[], "/portfolio/$(portfolio.id)"), [], JSON3.write(portfolio))
+    return JSON3.read(resp.body, Portfolio)
 end
 
-function deleteAlbum(id)
-    resp = HTTP.delete(string(SERVER[], "/album/$id"))
+function deletePortfolio(id)
+    resp = HTTP.delete(string(SERVER[], "/portfolio/$id"))
     return
 end
 
-function pickAlbumToListen()
+function pickRandomPortfolio()
     resp = HTTP.get(string(SERVER[], "/"))
-    return JSON3.read(resp.body, Album)
+    return JSON3.read(resp.body, Portfolio)
 end
 
 end # module

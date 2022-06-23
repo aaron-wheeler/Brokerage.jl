@@ -19,24 +19,23 @@ function init(dbfile)
     if !isfile(dbfile)
         db = SQLite.DB(dbfile)
         DBInterface.execute(db, """
-            CREATE TABLE album (
+            CREATE TABLE portfolio (
                 id INTEGER,
                 userid INTEGER,
                 name TEXT,
-                artist TEXT,
-                year INTEGER,
+                cash INTEGER,
                 timespicked INTEGER DEFAULT 0,
-                songs TEXT
+                holdings INTEGER
             )
         """)
         DBInterface.execute(db, """
-            CREATE INDEX idx_album_id ON album (id)
+            CREATE INDEX idx_portfolio_id ON portfolio (id)
         """)
         DBInterface.execute(db, """
-            CREATE INDEX idx_album_userid ON album (userid)
+            CREATE INDEX idx_portfolio_userid ON portfolio (userid)
         """)
         DBInterface.execute(db, """
-            CREATE INDEX idx_album_id_userid ON album (id, userid)
+            CREATE INDEX idx_portfolio_id_userid ON portfolio (id, userid)
         """)
         DBInterface.execute(db, """
             CREATE TABLE user (
@@ -62,46 +61,46 @@ function execute(sql, params; executemany::Bool=false)
     end
 end
 
-# inserting as many rows as there are albums
+# inserting as many rows as there are portfolios
 # `?` here are parameters which are filled iteratively
 # deconstructing julia object into column iterables, which DBInterface uses to make many tables
-function insert(album)
+function insert(portfolio)
     user = Contexts.getuser()
-    album.userid = user.id
+    portfolio.userid = user.id
     execute("""
-        INSERT INTO album (id, userid, name, artist, year, timespicked, songs) VALUES(?, ?, ?, ?, ?, ?, ?)
-    """, columntable(Strapping.deconstruct(album)); executemany=true)
+        INSERT INTO portfolio (id, userid, name, cash, timespicked, holdings) VALUES(?, ?, ?, ?, ?, ?)
+    """, columntable(Strapping.deconstruct(portfolio)); executemany=true)
     return
 end
 
-function create!(album::Album)
-    album.id = COUNTER[] += 1
-    insert(album)
+function create!(portfolio::Portfolio)
+    portfolio.id = COUNTER[] += 1
+    insert(portfolio)
     return
 end
 
-function update(album)
-    delete(album.id)
-    insert(album)
+function update(portfolio)
+    delete(portfolio.id)
+    insert(portfolio)
     return
 end
 
 function get(id)
     user = Contexts.getuser()
-    cursor = execute("SELECT * FROM album WHERE id = ? AND userid = ?", (id, user.id))
-    return Strapping.construct(Album, cursor)
+    cursor = execute("SELECT * FROM portfolio WHERE id = ? AND userid = ?", (id, user.id))
+    return Strapping.construct(Portfolio, cursor)
 end
 
 function delete(id)
     user = Contexts.getuser()
-    execute("DELETE FROM album WHERE id = ? AND userid = ?", (id, user.id))
+    execute("DELETE FROM portfolio WHERE id = ? AND userid = ?", (id, user.id))
     return
 end
 
-function getAllAlbums()
+function getAllPortfolios()
     user = Contexts.getuser()
-    cursor = execute("SELECT * FROM album WHERE userid = ?", (user.id,))
-    return Strapping.construct(Vector{Album}, cursor)
+    cursor = execute("SELECT * FROM portfolio WHERE userid = ?", (user.id,))
+    return Strapping.construct(Vector{Portfolio}, cursor)
 end
 
 function create!(user::User)

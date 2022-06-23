@@ -7,28 +7,28 @@ using ..Model, ..Service, ..Auth, ..Contexts, ..Workers
 
 const ROUTER = HTTP.Router()
 
-# the createAlbum function will pass a request `req` from the client, into the service layer
+# the createPortfolio function will pass a request `req` from the client, into the service layer
 # JSON3 will translate the http message into json and parse the request message body for the service layer
-createAlbum(req) = Service.createAlbum(JSON3.read(req.body))::Album # requestHandler function
-HTTP.register!(ROUTER, "POST", "/album", createAlbum) # when the method is post, we call the above function
+createPortfolio(req) = Service.createPortfolio(JSON3.read(req.body))::Portfolio # requestHandler function
+HTTP.register!(ROUTER, "POST", "/portfolio", createPortfolio) # when the method is post, we call the above function
 
-getAlbum(req) = Service.getAlbum(parse(Int, HTTP.URIs.splitpath(req.target)[2]))::Album
-HTTP.register!(ROUTER, "GET", "/album/*", getAlbum) # asterick here means match anything after the '/'
+getPortfolio(req) = Service.getPortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]))::Portfolio
+HTTP.register!(ROUTER, "GET", "/portfolio/*", getPortfolio) # asterick here means match anything after the '/'
 
-# the album must be passed in by the client here 
-updateAlbum(req) = Service.updateAlbum(parse(Int, HTTP.URIs.splitpath(req.target)[2]), JSON3.read(req.body, Album))::Album
-HTTP.register!(ROUTER, "PUT", "/album/*", updateAlbum) # PUT aka updating something here 
+# the Portfolio must be passed in by the client here 
+updatePortfolio(req) = Service.updatePortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]), JSON3.read(req.body, Portfolio))::Portfolio
+HTTP.register!(ROUTER, "PUT", "/portfolio/*", updatePortfolio) # PUT aka updating something here 
 
-deleteAlbum(req) = Service.deleteAlbum(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
-HTTP.register!(ROUTER, "DELETE", "/album/*", deleteAlbum)
+deletePortfolio(req) = Service.deletePortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
+HTTP.register!(ROUTER, "DELETE", "/portfolio/*", deletePortfolio)
 
 # nothing passed in by the client here, service layer does all the logic
 # want this handled asynchronously in background threads and not thread 1
-# Workers.jl - workers are assigned the pickAlbumToListen function, and then we fetch the result of that
+# Workers.jl - workers are assigned the pickRandomPortfolio function, and then we fetch the result of that
 # fetch is happening on thread 1 but is non-blocking, it will wait and task switch until 
 # the background thread is done doing the work, it will return to thread 1 which does fast serialize/deserialize
-pickAlbumToListen(req) = fetch(Workers.@async(Service.pickAlbumToListen()::Album))
-HTTP.register!(ROUTER, "GET", "/", pickAlbumToListen)
+pickRandomPortfolio(req) = fetch(Workers.@async(Service.pickRandomPortfolio()::Portfolio))
+HTTP.register!(ROUTER, "GET", "/", pickRandomPortfolio)
 
 # uses 'withcontext' function from Contexts.jl
 # passes in 'User' function from Auth.jl
@@ -88,9 +88,10 @@ function requestHandler(req)
     return resp
 end
 
+# start up local server and listen to anyone from port 8080 from my machine
 # for handling streams, add argument streams=true
 function run()
-    HTTP.serve(requestHandler, "0.0.0.0", 8080) # start up local server and listen to anyone from port 8080 from my machine
+    HTTP.serve(requestHandler, "0.0.0.0", 8080)
 end
 
 end # module
