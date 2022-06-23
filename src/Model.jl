@@ -2,7 +2,7 @@ module Model
 
 import Base: ==
 
-# StructTypes is used by JSON3 to do all of it's object serialization
+# StructTypes is used by JSON3 to do all of our object serialization
 using StructTypes
 
 export Album, User

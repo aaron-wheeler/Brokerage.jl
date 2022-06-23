@@ -48,6 +48,7 @@ function pickAlbumToListen()
     return pickedAlbum
 end
 
+# creates User struct defined in Model.jl
 function createUser(user)
     @assert haskey(user, :username) && !isempty(user.username)
     @assert haskey(user, :password) && !isempty(user.password)
@@ -56,12 +57,14 @@ function createUser(user)
     return user
 end
 
+# done this way so that we can persist user
 function loginUser(user)
     persistedUser = Mapper.get(user)
     if persistedUser.password == user.password
         persistedUser.password = ""
         return persistedUser
     else
+        println("persistedUser Login Error: User not recognized")
         throw(Auth.Unauthenticated())
     end
 end
