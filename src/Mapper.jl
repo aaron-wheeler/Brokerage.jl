@@ -8,8 +8,8 @@ using SQLite, DBInterface, Strapping, Tables
 const DB_POOL = Ref{ConnectionPools.Pod{ConnectionPools.Connection{SQLite.DB}}}()
 const COUNTER = Ref{Int64}(0)
 
-# define the relational database (denormalized here - simplified "one album (aka row) per song")
-# check normalized.jl for normalized database where we properly store songs Vector as seperate tables
+# define the relational database (denormalized here - simplified "one portfolio (aka row) per song")
+# check NormalizedMapper.jl for normalized database where we properly store holdings Vector as seperate tables
 # we use these database connections to store the objects we defined in Model.jl
 # database config options in 2nd line of function correspond to Pod Struct defined in ConnectionPools.jl
 # the additional execute methods create indices on the columns we'll be filtering on (helps with speed)
