@@ -37,7 +37,7 @@ function init(dbfile)
         #     CREATE INDEX idx_holdings_portfolio_id_userid ON holdings (portfolio_id, userid)
         # """)
         # DBInterface.execute(db, """
-        #     CREATE INDEX idx_portfolio_id ON holdings (portfolioid)
+        #     CREATE INDEX idx_portfolio_id ON holdings (portfolio_id)
         # """)
         DBInterface.execute(db, """
             CREATE INDEX idx_portfolio_userid ON portfolio (userid)
@@ -94,7 +94,7 @@ function create!(portfolio::Portfolio)
     #     INSERT INTO portfolio (userid, name, cash) VALUES(?, ?, ?)
     # """)
     # cursor = DBInterface.execute(stmt, (portfolio.userid, portfolio.name, portfolio.cash))
-    cursor = execute("""
+    execute("""
         INSERT INTO portfolio (id, userid, name, cash, timespicked) VALUES(?, ?, ?, ?, ?)
     """, (portfolio.id, portfolio.userid, portfolio.name, portfolio.cash, portfolio.timespicked))
     # id = DBInterface.lastrowid(cursor)
@@ -140,7 +140,7 @@ function get(id)
     Strapping.construct(Portfolio, execute("""
         SELECT A.id, A.userid, A.name, A.cash, A.timespicked, B.ticker as holdings FROM portfolio A
         LEFT JOIN holdings B ON A.id = B.portfolio_id AND A.userid = B.userid
-        WHERE id = ? AND userid = ?
+        WHERE id = ? AND A.userid = ?
     """, (id, user.id)))
 end
 
@@ -170,7 +170,7 @@ function getAllPortfolios()
     Strapping.construct(Vector{Portfolio}, execute("""
         SELECT A.id, A.userid, A.name, A.cash, A.timespicked, B.ticker as holdings FROM portfolio A
         LEFT JOIN holdings B ON A.id = B.portfolio_id AND A.userid = B.userid
-        WHERE userid = ?
+        WHERE A.userid = ?
     """, (user.id,)))
 end
 
