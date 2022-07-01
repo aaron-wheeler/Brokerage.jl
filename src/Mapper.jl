@@ -40,6 +40,20 @@ function init(dbfile)
         #     CREATE INDEX idx_portfolio_id ON holdings (portfolio_id)
         # """)
         DBInterface.execute(db, """
+            CREATE TABLE pendingorders (
+                portfolio_id INTEGER,
+                userid INTEGER,
+                transaction_id INTEGER DEFAULT 0
+            )
+        """)
+        DBInterface.execute(db, """
+            CREATE TABLE completedorders (
+                portfolio_id INTEGER,
+                userid INTEGER,
+                transaction_id INTEGER DEFAULT 0
+            )
+        """)
+        DBInterface.execute(db, """
             CREATE INDEX idx_portfolio_userid ON portfolio (userid)
         """)
         DBInterface.execute(db, """
@@ -69,47 +83,27 @@ function execute(sql, params; executemany::Bool=false)
     end
 end
 
-# inserting as many rows as there are portfolios
-# `?` here are parameters which are filled iteratively
-# deconstructing julia object into column iterables, which DBInterface uses to make many tables
-# function insert(portfolio)
-#     user = Contexts.getuser()
-#     portfolio.userid = user.id
-#     execute("""
-#         INSERT INTO portfolio (id, userid, name, cash, timespicked, holdings) VALUES(?, ?, ?, ?, ?, ?)
-#     """, columntable(Strapping.deconstruct(portfolio)); executemany=true)
-#     return
-# end
-
-# function create!(portfolio::Portfolio)
-#     portfolio.id = COUNTER[] += 1
-#     insert(portfolio)
-#     return
-# end
 function create!(portfolio::Portfolio)
     user = Contexts.getuser()
     portfolio.userid = user.id
     portfolio.id = COUNTER[] += 1
-    # stmt = DBInterface.@prepare(getdb, """
-    #     INSERT INTO portfolio (userid, name, cash) VALUES(?, ?, ?)
-    # """)
-    # cursor = DBInterface.execute(stmt, (portfolio.userid, portfolio.name, portfolio.cash))
     execute("""
         INSERT INTO portfolio (id, userid, name, cash, timespicked) VALUES(?, ?, ?, ?, ?)
     """, (portfolio.id, portfolio.userid, portfolio.name, portfolio.cash, portfolio.timespicked))
-    # id = DBInterface.lastrowid(cursor)
     id = portfolio.id
     execute("""
         INSERT INTO holdings (portfolio_id, userid, ticker) VALUES (?, ?, ?)
     """, ([id for _ = 1:length(portfolio.holdings)], [user.id for _ = 1:length(portfolio.holdings)], portfolio.holdings); executemany=true)
+    # implement pendingorders & completedorders as simple dummy vector for now
+    execute("""
+        INSERT INTO pendingorders (portfolio_id, userid, transaction_id) VALUES (?, ?, ?)
+    """, ([id for _ = 1:length(portfolio.pendingorders)], [user.id for _ = 1:length(portfolio.pendingorders)], portfolio.pendingorders); executemany=true)
+    execute("""
+        INSERT INTO completedorders (portfolio_id, userid, transaction_id) VALUES (?, ?, ?)
+    """, ([id for _ = 1:length(portfolio.completedorders)], [user.id for _ = 1:length(portfolio.completedorders)], portfolio.completedorders); executemany=true)
     return
 end
 
-# function update(portfolio)
-#     delete(portfolio.id)
-#     insert(portfolio)
-#     return
-# end
 function update(portfolio)
     user = Contexts.getuser()
     portfolio.userid = user.id
@@ -121,34 +115,52 @@ function update(portfolio)
             timespicked = ?
         WHERE id = ?
     """, (portfolio.userid, portfolio.name, portfolio.cash, portfolio.timespicked, portfolio.id))
+    # update holdings
     execute("""
         DELETE FROM holdings WHERE portfolio_id = ? AND userid = ?
     """, (portfolio.id, user.id))
     execute("""
         INSERT INTO holdings (portfolio_id, userid, ticker) VALUES (?, ?, ?)
     """, ([portfolio.id for _ = 1:length(portfolio.holdings)], [user.id for _ = 1:length(portfolio.holdings)], portfolio.holdings); executemany=true)
+    # TODO: Implement logic for this 
+    # update pendingorders
+    # execute("""
+    #     DELETE FROM pendingorders WHERE portfolio_id = ? AND userid = ?
+    # """, (portfolio.id, user.id))
+    # execute("""
+    #     INSERT INTO pendingorders (portfolio_id, userid, transaction_id) VALUES (?, ?, ?)
+    # """, ([portfolio.id for _ = 1:length(portfolio.pendingorders)], [user.id for _ = 1:length(portfolio.pendingorders)], portfolio.pendingorders); executemany=true)
+    execute("""
+        UPDATE pendingorders
+        SET transaction_id = ?
+        WHERE portfolio_id = ? AND userid = ?
+    """, (portfolio.pendingorders, [portfolio.id for _ = 1:length(portfolio.pendingorders)], [user.id for _ = 1:length(portfolio.pendingorders)]); executemany=true)
+    # update completedorders
+    # execute("""
+    #     DELETE FROM completedorders WHERE portfolio_id = ? AND userid = ?
+    # """, (portfolio.id, user.id))
+    # execute("""
+    #     INSERT INTO completedorders (portfolio_id, userid, transaction_id) VALUES (?, ?, ?)
+    # """, ([portfolio.id for _ = 1:length(portfolio.completedorders)], [user.id for _ = 1:length(portfolio.completedorders)], portfolio.completedorders); executemany=true)
+    execute("""
+        UPDATE completedorders
+        SET transaction_id = ?
+        WHERE portfolio_id = ? AND userid = ?
+    """, (portfolio.completedorders, [portfolio.id for _ = 1:length(portfolio.completedorders)], [user.id for _ = 1:length(portfolio.completedorders)]); executemany=true)
     return
 end
 
-# function get(id)
-#     user = Contexts.getuser()
-#     cursor = execute("SELECT * FROM portfolio WHERE id = ? AND userid = ?", (id, user.id))
-#     return Strapping.construct(Portfolio, cursor)
-# end
 function get(id)
     user = Contexts.getuser()
     Strapping.construct(Portfolio, execute("""
-        SELECT A.id, A.userid, A.name, A.cash, A.timespicked, B.ticker as holdings FROM portfolio A
-        LEFT JOIN holdings B ON A.id = B.portfolio_id AND A.userid = B.userid
+        SELECT A.id, A.userid, A.name, A.cash, A.timespicked, B.ticker as holdings, C.transaction_id as pendingorders, D.transaction_id as completedorders FROM portfolio A
+        INNER JOIN holdings B ON A.id = B.portfolio_id AND A.userid = B.userid
+        INNER JOIN pendingorders C ON A.id = C.portfolio_id AND A.userid = C.userid
+        INNER JOIN completedorders D ON A.id = D.portfolio_id AND A.userid = D.userid
         WHERE id = ? AND A.userid = ?
     """, (id, user.id)))
 end
 
-# function delete(id)
-#     user = Contexts.getuser()
-#     execute("DELETE FROM portfolio WHERE id = ? AND userid = ?", (id, user.id))
-#     return
-# end
 function delete(id)
     user = Contexts.getuser()
     execute("""
@@ -157,19 +169,22 @@ function delete(id)
     execute("""
         DELETE FROM holdings WHERE portfolio_id = ? AND userid = ?
     """, (id, user.id))
+    execute("""
+        DELETE FROM pendingorders WHERE portfolio_id = ? AND userid = ?
+    """, (id, user.id))
+    execute("""
+        DELETE FROM completedorders WHERE portfolio_id = ? AND userid = ?
+    """, (id, user.id))
     return
 end
 
-# function getAllPortfolios()
-#     user = Contexts.getuser()
-#     cursor = execute("SELECT * FROM portfolio WHERE userid = ?", (user.id,))
-#     return Strapping.construct(Vector{Portfolio}, cursor)
-# end
 function getAllPortfolios()
     user = Contexts.getuser()
     Strapping.construct(Vector{Portfolio}, execute("""
-        SELECT A.id, A.userid, A.name, A.cash, A.timespicked, B.ticker as holdings FROM portfolio A
-        LEFT JOIN holdings B ON A.id = B.portfolio_id AND A.userid = B.userid
+        SELECT A.id, A.userid, A.name, A.cash, A.timespicked, B.ticker as holdings, C.transaction_id as pendingorders, D.transaction_id as completedorders FROM portfolio A
+        INNER JOIN holdings B ON A.id = B.portfolio_id AND A.userid = B.userid
+        INNER JOIN pendingorders C ON A.id = C.portfolio_id AND A.userid = C.userid
+        INNER JOIN completedorders D ON A.id = D.portfolio_id AND A.userid = D.userid
         WHERE A.userid = ?
     """, (user.id,)))
 end
