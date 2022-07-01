@@ -28,3 +28,8 @@ end
 Client.deletePortfolio(por1.id)
 por2 = Client.createPortfolio("Trader 2", 9670, [2, 4])
 @test Client.pickRandomPortfolio() == por2
+
+Client.createUser("aaronW", "password456")
+user = Client.loginUser("aaronW", "password456")
+
+newuser_por1 = Client.createPortfolio("Trader 3", 10500, [1, 2, 3, 4])
