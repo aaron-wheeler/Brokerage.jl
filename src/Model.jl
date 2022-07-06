@@ -5,7 +5,7 @@ import Base: ==
 # StructTypes is used by JSON3 to do all of our object serialization
 using StructTypes
 
-export Portfolio, User
+export Portfolio, User, LimitOrder
 
 #=
 Brokerage uses 'id' to distinguish between multiple portfolios
@@ -18,16 +18,16 @@ mutable struct Portfolio
     id::Int64 # service-managed
     userid::Int64 # service-managed
     name::String # passed by client
-    cash::Int64 # passed by client, TODO: make this BigInt
+    cash::Float64 # passed by client, TODO: make this BigInt
     timespicked::Int64 # service-managed
     holdings::Vector{Int64} # TODO: avoid making this 64-bit
-    pendingorders::Vector{Int64} # service-managed; TODO: avoid making this 64-bit?
-    completedorders::Vector{Int64} # service-managed; TODO: avoid making this 64-bit?
+    pendingorders::Vector{Int64} # service-managed
+    completedorders::Vector{Int64} # service-managed
 end
 
 # default constructors for JSON3
 ==(x::Portfolio, y::Portfolio) = x.id == y.id
-Portfolio() = Portfolio(0, 0, "", 0, 0, Int[], Int[0], Int[0])
+Portfolio() = Portfolio(0, 0, "", 0.0, 0, Int[], Int[0], Int[0])
 Portfolio(name, cash, holdings) = Portfolio(0, 0, name, cash, 0, holdings, Int[0], Int[0])
 StructTypes.StructType(::Type{Portfolio}) = StructTypes.Mutable()
 StructTypes.idproperty(::Type{Portfolio}) = :id # for 'get' function in Mapper; different portfolio rows with the same id # refer to the same portfolio
@@ -44,5 +44,34 @@ User(username::String, password::String) = User(0, username, password)
 User(id::Int64, username::String) = User(id, username, "")
 StructTypes.StructType(::Type{User}) = StructTypes.Mutable()
 StructTypes.idproperty(::Type{User}) = :id
+
+# ======================================================================================== #
+
+abstract type Order end
+
+mutable struct LimitOrder <: Order
+    ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets
+    order_id::Int64 # TODO: make this service-managed
+    order_side::String
+    limit_price::Float64
+    limit_size::Float64
+end # TODO: create field for fill_mode
+
+# default constructors for JSON3
+==(x::LimitOrder, y::LimitOrder) = x.order_id == y.order_id
+LimitOrder() = LimitOrder(0, 0, "", 0.0, 0.0)
+LimitOrder(ticker, order_id, order_side, limit_price, limit_size) = LimitOrder(ticker, order_id, order_side, limit_price, limit_size)
+StructTypes.StructType(::Type{LimitOrder}) = StructTypes.Mutable()
+StructTypes.idproperty(::Type{LimitOrder}) = :order_id
+
+# mutable struct MarketOrder <: Order
+#     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets
+#     order_id::Int64 # service-managed
+#     order_side::String
+#     mo_size::Float64
+# end # TODO: create field for funds
+
+# submit_market_order!(ob::OrderBook,side::OrderSide,mo_size[,fill_mode::OrderTraits])
+# submit_market_order_byfunds!(ob::OrderBook,side::Symbol,funds[,mode::OrderTraits])
 
 end # module

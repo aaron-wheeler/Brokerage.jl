@@ -7,8 +7,8 @@ using Base.Iterators: zip,cycle,take,filter
 # Create (Deterministic) Limit Order Generator
 MyUOBType = UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer} # define types for Order Size, Price, Transcation ID, Account ID, Order Creation Time, IP Address, Port
 MyLOBType = OrderBook{Int64, Float64, Int64, Int64} # define types for Order Size, Price, Order IDs, Account IDs
-ob = MyLOBType() # Initialize empty order book
-uob = MyUOBType() # Initialize unmatched book process
+ob1 = MyLOBType() # Initialize empty order book
+uob1 = MyUOBType() # Initialize unmatched book process
 
 orderid_iter = Base.Iterators.countfrom(1)
 sign_iter = cycle([1,-1,1,-1])
@@ -34,7 +34,7 @@ order_info_lst = take(lmt_order_info_iter,6)
 
 # Add a bunch of orders
 for (orderid, price, size, side) in order_info_lst
-    submit_limit_order!(ob,uob,orderid,side,price,size,10101)
+    submit_limit_order!(ob1,uob1,orderid,side,price,size,10101)
     print(orderid, ' ',side,' ',price,'\n')
 end
 
@@ -69,10 +69,41 @@ limit_size::Real,
 [, acct_id::Aid, fill_mode::OrderTraits ]
 )
 =#
-# my_order_id = 10000
-# my_limit_order_s_price = 99.0
-# my_limit_order_s_size = 5
-# my_acct_id = 10101
+ticker = 1
+order_id = 10000
+# order_side = "SELL_ORDER"
+limit_price = 99.0
+limit_size = 5
+acct_id = 10101
+
+function processLimitOrderSale(ticker, order_id, limit_price, limit_size)
+    ticker_ob = ticker
+    ob_expr = Symbol("ob"*"$ticker_ob")
+    uob_expr = Symbol("uob"*"$ticker_ob")
+    trade = VL_LimitOrderBook.submit_limit_order!(eval(ob_expr), eval(uob_expr), order_id,
+                        SELL_ORDER, limit_price,
+                        limit_size, acct_id)
+    # returns Tuple with 3 elements - new_open_order, cross_match_lst, remaining_size
+    return trade
+end
+
+function processLimitOrderPurchase(ticker, order_id, limit_price, limit_size)
+    ticker_ob = ticker
+    ob_expr = Symbol("ob"*"$ticker_ob")
+    uob_expr = Symbol("uob"*"$ticker_ob")
+    trade = VL_LimitOrderBook.submit_limit_order!(eval(ob_expr), eval(uob_expr), order_id,
+                        BUY_ORDER, limit_price,
+                        limit_size, acct_id)
+    # returns Tuple with 3 elements - new_open_order, cross_match_lst, remaining_size
+    return trade
+end
+
+trade = processLimitOrderSale(ticker, order_id, limit_price, limit_size)
+trade = processLimitOrderPurchase(ticker, order_id, limit_price, limit_size)
+
+# @test trade[1] == nothing # aka the order was matched completely
+# @test trade[3] == 0 # aka the order was matched completely
+
 # # sell order
 # submit_limit_order!(ob, uob, my_order_id,
 #                     SELL_ORDER, my_limit_order_s_price,
@@ -86,8 +117,8 @@ limit_size::Real,
 # TODO - FIX: Right now this order isn't cleared from the active
 # orders in get_acct() when matched--it still shows up
 
-# submit_limit_order!(ob,uob,10000,SELL_ORDER,99.0,5,10101)
-# submit_limit_order!(ob,uob,10000,BUY_ORDER,100,5,10101)
+# submit_limit_order!(ob1,uob1,10000,SELL_ORDER,99.0,5,10101)
+# submit_limit_order!(ob1,uob1,10000,BUY_ORDER,100,5,10101)
 
 #=
     Market Order example

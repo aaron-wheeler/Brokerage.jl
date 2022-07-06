@@ -10,6 +10,8 @@ const SERVER = Ref{String}("http://localhost:8080")
 # The following functions mirror what was written in the Resource module
 # The functions calls are routed to the appropriate method via Resource.jl
 
+# ======================================================================================== #
+
 function createUser(username, password)
     body = (; username, password=base64encode(password))
     resp = HTTP.post(string(SERVER[], "/user"), [], JSON3.write(body))
@@ -46,6 +48,14 @@ end
 function pickRandomPortfolio()
     resp = HTTP.get(string(SERVER[], "/"))
     return JSON3.read(resp.body, Portfolio)
+end
+
+# ======================================================================================== #
+
+function placeLimitOrder(ticker, order_id, order_side, limit_price, limit_size)
+    body = (; ticker, order_id, order_side, limit_price, limit_size)
+    resp = HTTP.post(string(SERVER[], "/order/$id"), [], JSON3.write(body))
+    return JSON3.read(resp.body, LimitOrder)
 end
 
 end # module

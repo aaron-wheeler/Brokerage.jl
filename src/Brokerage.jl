@@ -1,6 +1,6 @@
 module Brokerage
 
-export Model, Mapper, Service, Resource, Client
+export Model, Mapper, OMS, Service, Resource, Client
 # export Model, NormalizedMapper, Service, Resource, Client
 
 include("ConnectionPools.jl")
@@ -23,6 +23,9 @@ using .Mapper
 # include("NormalizedMapper.jl")
 # using .NormalizedMapper
 
+include("OMS.jl")
+using .OMS
+
 include("Service.jl")
 using .Service
 
@@ -36,6 +39,7 @@ function run(dbfile, authkeysfile)
     Workers.init()
     Mapper.init(dbfile)
     # NormalizedMapper.init(dbfile)
+    OMS.init()
     Auth.init(authkeysfile)
     Resource.run()
 end

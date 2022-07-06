@@ -7,6 +7,9 @@ using ..Model, ..Service, ..Auth, ..Contexts, ..Workers
 
 const ROUTER = HTTP.Router()
 
+# ======================================================================================== #
+#----- ACCOUNT ROUTING -----#
+
 # the createPortfolio function will pass a request `req` from the client, into the service layer
 # JSON3 will translate the http message into json and parse the request message body for the service layer
 createPortfolio(req) = Service.createPortfolio(JSON3.read(req.body))::Portfolio # requestHandler function
@@ -29,6 +32,14 @@ HTTP.register!(ROUTER, "DELETE", "/portfolio/*", deletePortfolio)
 # the background thread is done doing the work, it will return to thread 1 which does fast serialize/deserialize
 pickRandomPortfolio(req) = fetch(Workers.@async(Service.pickRandomPortfolio()::Portfolio))
 HTTP.register!(ROUTER, "GET", "/", pickRandomPortfolio)
+
+# ======================================================================================== #
+#----- ORDER ROUTING -----#
+
+placeLimitOrder(req) = Service.placeLimitOrder(parse(Int, HTTP.URIs.splitpath(req.target)[2]), JSON3.read(req.body))::LimitOrder
+HTTP.register!(ROUTER, "POST", "/order/*", placeLimitOrder)
+
+# ======================================================================================== #
 
 # uses 'withcontext' function from Contexts.jl
 # passes in 'User' function from Auth.jl
