@@ -22,7 +22,7 @@ function init(dbfile)
                 id INTEGER,
                 userid INTEGER,
                 name TEXT,
-                cash INTEGER,
+                cash REAL,
                 timespicked INTEGER DEFAULT 0
             )
         """)
