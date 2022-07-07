@@ -39,7 +39,7 @@ function run(dbfile, authkeysfile)
     Workers.init()
     Mapper.init(dbfile)
     # NormalizedMapper.init(dbfile)
-    OMS.init()
+    # OMS.init()
     Auth.init(authkeysfile)
     Resource.run()
 end

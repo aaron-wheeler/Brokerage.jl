@@ -52,9 +52,9 @@ end
 
 # ======================================================================================== #
 
-function placeLimitOrder(ticker, order_id, order_side, limit_price, limit_size)
-    body = (; ticker, order_id, order_side, limit_price, limit_size)
-    resp = HTTP.post(string(SERVER[], "/order/$id"), [], JSON3.write(body))
+function placeLimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id)
+    body = (; ticker, order_id, order_side, limit_price, limit_size, acct_id)
+    resp = HTTP.post(string(SERVER[], "/order"), [], JSON3.write(body))
     return JSON3.read(resp.body, LimitOrder)
 end
 

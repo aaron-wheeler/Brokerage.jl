@@ -55,12 +55,13 @@ mutable struct LimitOrder <: Order
     order_side::String
     limit_price::Float64
     limit_size::Float64
+    acct_id::Int64 # service-managed; same id as portfolio.id
 end # TODO: create field for fill_mode
 
 # default constructors for JSON3
 ==(x::LimitOrder, y::LimitOrder) = x.order_id == y.order_id
-LimitOrder() = LimitOrder(0, 0, "", 0.0, 0.0)
-LimitOrder(ticker, order_id, order_side, limit_price, limit_size) = LimitOrder(ticker, order_id, order_side, limit_price, limit_size)
+LimitOrder() = LimitOrder(0, 0, "", 0.0, 0.0, 0)
+LimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id) = LimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id)
 StructTypes.StructType(::Type{LimitOrder}) = StructTypes.Mutable()
 StructTypes.idproperty(::Type{LimitOrder}) = :order_id
 

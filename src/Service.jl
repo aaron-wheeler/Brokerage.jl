@@ -83,12 +83,13 @@ end
 # ======================================================================================== #
 #----- Order Services -----#
 
-function placeLimitOrder(id, obj) # make this @cacheable ? delete when matched or at EOD?
+function placeLimitOrder(obj) # make this @cacheable ? delete when matched or at EOD?
     @assert haskey(obj, :ticker) && !isempty(obj.ticker) # TODO: Check if ticker exists in OMS
     @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: make this service-managed
     @assert haskey(obj, :order_side) && !isempty(obj.order_side) # TODO: Check if either "BUY_ORDER" or "SELL_ORDER"
     @assert haskey(obj, :limit_price) && !isempty(obj.limit_price)
     @assert haskey(obj, :limit_size) && !isempty(obj.limit_size)
+    @assert haskey(obj, :acct_id) && !isempty(obj.acct_id) # TODO: make this match existing portfolio id? depends on which one created first... 
     # TODO:
     # if BUY_ORDER
     # check OMS layer to see how many funds are needed
@@ -105,11 +106,11 @@ function placeLimitOrder(id, obj) # make this @cacheable ? delete when matched o
     # from Mapper layer, create and return unique transaction_id
     # order_id = transaction_id
     # TODO: Set-up fill_mode functionality
-    order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size)
+    order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
 
     # TODO: do the following @asynch
     # send order to OMS layer for fulfillment
-    processTrade(id, order)
+    processTrade(order)
 
     # define variable for processTrade and if = true then delete @cachable order? Or do that in processTrade instead?
 
@@ -140,10 +141,10 @@ end
 # ======================================================================================== #
 #----- Trade Services -----#
 
-function processTrade(id, order::LimitOrder)
+function processTrade(order::LimitOrder)
     # navigate order to correct location
     if order.order_side == "SELL_ORDER"
-        trade = OMS.processLimitOrderSale(id, order)
+        trade = OMS.processLimitOrderSale(order)
         @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
         # TODO: incorporate complete trade functionality below
         # if trade[1] == nothing
@@ -151,7 +152,7 @@ function processTrade(id, order::LimitOrder)
         #     # TODO: update portfolio accordingly           
         # end
     elseif order.order_side == "BUY_ORDER"
-        trade = OMS.processLimitOrderPurchase(id, order)
+        trade = OMS.processLimitOrderPurchase(order)
         @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
         # TODO: incorporate complete trade functionality below
         # if trade[1] == nothing
