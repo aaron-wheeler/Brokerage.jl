@@ -117,26 +117,81 @@ function placeLimitOrder(obj) # make this @cacheable ? delete when matched or at
     return order  
 end
 
+function placeMarketOrder(obj) # make this @cacheable ? delete when matched or at EOD?
+    @assert haskey(obj, :ticker) && !isempty(obj.ticker) # TODO: Check if ticker exists in OMS
+    @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: make this service-managed
+    @assert haskey(obj, :order_side) && !isempty(obj.order_side) # TODO: Check if either "BUY_ORDER" or "SELL_ORDER"
+    @assert haskey(obj, :mo_size) && !isempty(obj.mo_size)
+    @assert haskey(obj, :acct_id) && !isempty(obj.acct_id) # TODO: make this match existing portfolio id? depends on which one created first... 
+    # TODO:
+    # if BUY_ORDER
+    # check OMS layer to see how many funds are needed
+    # from Mapper layer, check if sufficient funds available
+    # return either rejection or acknowledgement @info message
+    # break if rejection
+
+    # if SELL_ORDER
+    # from Mapper layer, check if sufficient shares available
+    # return either rejection or acknowledgement @info message
+    # break if rejection
+
+    # TODO:
+    # from Mapper layer, create and return unique transaction_id
+    # order_id = transaction_id
+    order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.mo_size, obj.acct_id)
+
+    # TODO: do the following @asynch
+    # send order to OMS layer for fulfillment
+    processTrade(order)
+
+    # define variable for processTrade and if = true then delete @cachable order? Or do that in processTrade instead?
+
+    return order  
+end
+
 # submit_market_order!(ob::OrderBook,side::OrderSide,mo_size[,fill_mode::OrderTraits])
 # submit_market_order_byfunds!(ob::OrderBook,side::Symbol,funds[,mode::OrderTraits])
 
-# function cancelOrder(id, order_id)
-#     acct_id = id
-#     # cancel_order!(ob,orderid,side,price)
-# end
+function placeCancelOrder(obj) # make this @cacheable ? delete when matched or at EOD?
+    @assert haskey(obj, :ticker) && !isempty(obj.ticker) # TODO: Check if ticker exists in OMS
+    @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: Check if exists in LOB and portfolio.id -> pendingorders
+    @assert haskey(obj, :order_side) && !isempty(obj.order_side)
+    @assert haskey(obj, :limit_price) && !isempty(obj.limit_price) # TODO: Check if matches limit_price of order_id found in earlier step
+    @assert haskey(obj, :acct_id) && !isempty(obj.acct_id)
+  
+    order = CancelOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.acct_id)
+
+    # TODO: do the following @asynch
+    # send order to OMS layer for fulfillment
+    processTrade(order)
+
+    # define variable for processTrade and if = true then delete @cachable order? Or do that in processTrade instead?
+
+    return order  
+end
 
 # ======================================================================================== #
 #----- Quote Services -----#
 
-# function getBidAsk()
-#     # best_bid_ask(ob) 
-# end
+function getBidAsk(ticker)
+    spread = OMS.queryBidAsk(ticker)
+    return spread
+end
 
-# best_bid_ask(ob) # returns tuple of best bid and ask prices in the order book
-# book_depth_info(ob) # nested dict of prices, volumes and order counts at a specified max_depth (default = 5)
-# get_acct(ob,acct_id) # return all open orders assigned to account `acct_id`
-# volume_bid_ask(ob)
-# n_orders_bid_ask(ob)
+function getBookDepth(ticker)
+    depth = OMS.queryBookDepth(ticker)
+    return depth
+end
+
+function getBidAskVolume(ticker)
+    spread_volume = OMS.queryBidAskVolume(ticker)
+    return spread_volume
+end
+
+function getBidAskOrders(ticker)
+    n_orders_spread = OMS.queryBidAskOrders(ticker)
+    return n_orders_spread
+end
 
 # ======================================================================================== #
 #----- Trade Services -----#
@@ -154,6 +209,50 @@ function processTrade(order::LimitOrder)
     elseif order.order_side == "BUY_ORDER"
         trade = OMS.processLimitOrderPurchase(order)
         @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+        # TODO: incorporate complete trade functionality below
+        # if trade[1] == nothing
+        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+        #     # TODO: update portfolio accordingly           
+        # end
+    end
+    # return true ?
+end
+
+function processTrade(order::MarketOrder)
+    # navigate order to correct location
+    if order.order_side == "SELL_ORDER"
+        trade = OMS.processMarketOrderSale(order)
+        @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+        # TODO: incorporate complete trade functionality below
+        # if trade[1] == nothing
+        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+        #     # TODO: update portfolio accordingly           
+        # end
+    elseif order.order_side == "BUY_ORDER"
+        trade = OMS.processMarketOrderPurchase(order)
+        @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+        # TODO: incorporate complete trade functionality below
+        # if trade[1] == nothing
+        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+        #     # TODO: update portfolio accordingly           
+        # end
+    end
+    # return true ?
+end
+
+function processTrade(order::CancelOrder)
+    # navigate order to correct location
+    if order.order_side == "SELL_ORDER"
+        canceled_trade = OMS.cancelLimitOrderSale(order)
+        @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+        # TODO: incorporate complete trade functionality below
+        # if trade[1] == nothing
+        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+        #     # TODO: update portfolio accordingly           
+        # end
+    elseif order.order_side == "BUY_ORDER"
+        canceled_trade = OMS.cancelLimitOrderPurchase(order)
+        @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
         # TODO: incorporate complete trade functionality below
         # if trade[1] == nothing
         #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."

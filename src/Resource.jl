@@ -39,6 +39,27 @@ HTTP.register!(ROUTER, "GET", "/", pickRandomPortfolio)
 placeLimitOrder(req) = Service.placeLimitOrder(JSON3.read(req.body))::LimitOrder
 HTTP.register!(ROUTER, "POST", "/order", placeLimitOrder)
 
+placeMarketOrder(req) = Service.placeMarketOrder(JSON3.read(req.body))::MarketOrder
+HTTP.register!(ROUTER, "POST", "/m_order", placeMarketOrder)
+
+placeCancelOrder(req) = Service.placeCancelOrder(JSON3.read(req.body))::CancelOrder
+HTTP.register!(ROUTER, "POST", "/c_order", placeCancelOrder)
+
+# ======================================================================================== #
+#----- QUOTE ROUTING -----#
+
+getBidAsk(req) = Service.getBidAsk(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
+HTTP.register!(ROUTER, "GET", "/quote_spread/*", getBidAsk)
+
+getBookDepth(req) = Service.getBookDepth(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
+HTTP.register!(ROUTER, "GET", "/quote_depth/*", getBookDepth)
+
+getBidAskVolume(req) = Service.getBidAskVolume(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
+HTTP.register!(ROUTER, "GET", "/quote_spread_volume/*", getBidAskVolume)
+
+getBidAskOrders(req) = Service.getBidAskOrders(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
+HTTP.register!(ROUTER, "GET", "/quote_spread_orders/*", getBidAskOrders)
+
 # ======================================================================================== #
 
 # uses 'withcontext' function from Contexts.jl

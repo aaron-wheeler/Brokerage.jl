@@ -70,18 +70,69 @@ function processLimitOrderPurchase(order::LimitOrder)
     return trade
 end
 
+function processMarketOrderSale(order::MarketOrder)
+    ticker_ob = order.ticker
+    ob_expr = Symbol("ob"*"$ticker_ob")
+    trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),SELL_ORDER,order.mo_size)
+    # returns Tuple with 2 elements - ord_lst (list of limit orders that the m_order matched with), left_to_trade (remaining size of un-filled order)
+    return trade
+end
+
+function processMarketOrderPurchase(order::MarketOrder)
+    ticker_ob = order.ticker
+    ob_expr = Symbol("ob"*"$ticker_ob")
+    trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),BUY_ORDER,order.mo_size)
+    # returns Tuple with 2 elements - ord_lst, left_to_trade 
+    return trade
+end
 
 # submit_market_order!(ob::OrderBook,side::OrderSide,mo_size[,fill_mode::OrderTraits])
 # submit_market_order_byfunds!(ob::OrderBook,side::Symbol,funds[,mode::OrderTraits])
 
-# cancel_order!(ob,orderid,side,price)
+function cancelLimitOrderSale(order::CancelOrder)
+    ticker_ob = order.ticker
+    ob_expr = Symbol("ob"*"$ticker_ob")
+    canceled_order = VL_LimitOrderBook.cancel_order!(eval(ob_expr),order.order_id,SELL_ORDER,order.limit_price)
+    # returns `popped order` (ord::Union{Order{Sz,Px,Oid,Aid},Nothing}), is nothing if no order found
+    return canceled_order
+end
+
+function cancelLimitOrderPurchase(order::CancelOrder)
+    ticker_ob = order.ticker
+    ob_expr = Symbol("ob"*"$ticker_ob")
+    canceled_order = VL_LimitOrderBook.cancel_order!(eval(ob_expr),order.order_id,BUY_ORDER,order.limit_price)
+    # returns `popped order` (ord::Union{Order{Sz,Px,Oid,Aid},Nothing}), is nothing if no order found
+    return canceled_order
+end
 
 # ======================================================================================== #
+#----- Quote Services -----#
 
-# best_bid_ask(ob) # returns tuple of best bid and ask prices in the order book
-# book_depth_info(ob) # nested dict of prices, volumes and order counts at a specified max_depth (default = 5)
-# get_acct(ob,acct_id) # return all open orders assigned to account `acct_id`
-# volume_bid_ask(ob)
-# n_orders_bid_ask(ob)
+function queryBidAsk(ticker)
+    ob_expr = Symbol("ob"*"$ticker")
+    spread = VL_LimitOrderBook.best_bid_ask(eval(ob_expr))
+    return spread
+end
+
+function queryBookDepth(ticker)
+    ob_expr = Symbol("ob"*"$ticker")
+    depth = VL_LimitOrderBook.book_depth_info(eval(ob_expr))
+    return depth
+end
+
+function queryBidAskVolume(ticker)
+    ob_expr = Symbol("ob"*"$ticker")
+    spread_volume = VL_LimitOrderBook.volume_bid_ask(eval(ob_expr))
+    return spread_volume
+end
+
+function queryBidAskOrders(ticker)
+    ob_expr = Symbol("ob"*"$ticker")
+    n_orders_spread = VL_LimitOrderBook.n_orders_bid_ask(eval(ob_expr))
+    return n_orders_spread
+end
+
+# TODO: Consider implementing the following fn into `getPortfolio` function?
+# VL_LimitOrderBook.get_acct(ob,acct_id) # returns an account map of all open orders assigned to account `acct_id`. The account map is implemented as a `Dict` containing `AVLTree`s.
     
 end # module

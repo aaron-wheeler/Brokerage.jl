@@ -13,9 +13,25 @@ server = @async Brokerage.run(DBFILE, AUTHFILE)
 
 # por1 = Client.createPortfolio("Trader 1", 10500.0, [1, 2])
 
+## Order testing
 # ord1 = Client.placeLimitOrder(1,1287,"SELL_ORDER",99.0,7,por1.id)
-# ord2 = Client.placeLimitOrder(1,1287,"BUY_ORDER",100.0,7,por1.id)
-# OMS.ob1 # changed order book can only be seen on server side terminal ** (haven't incorporated qoute service yet)
+# ord2 = Client.placeLimitOrder(1,1283,"BUY_ORDER",100.0,7,por1.id)
+# # OMS.ob1 # changed order book can only be seen on server side terminal ** (haven't incorporated qoute service yet)
+
+# ord3 = Client.placeMarketOrder(1,1211,"SELL_ORDER",7,por1.id)
+# ord4 = Client.placeMarketOrder(1,1281,"BUY_ORDER",7,por1.id)
+
+# ord3 = Client.placeMarketOrder(1,1211,"SELL_ORDER",7,por1.id)
+# ord4 = Client.placeMarketOrder(1,1281,"BUY_ORDER",7,por1.id)
+
+# ord5 = Client.placeLimitOrder(1,1280,"BUY_ORDER",98.0,3,por1.id)
+# Client.placeCancelOrder(1,1280,"BUY_ORDER",98.0,por1.id)
+
+## Quote testing
+# spread = Client.getBidAsk(1)
+# depth = Client.getBookDepth(1)
+# spread_volume = Client.getBidAskVolume(1)
+# n_orders_spread = Client.getBidAskOrders(1)
 
 # @testset "Test 1" begin
 #     @test Client.pickRandomPortfolio() == por1
