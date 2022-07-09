@@ -60,14 +60,11 @@ function placeLimitOrder(ticker, order_id, order_side, limit_price, limit_size, 
     return JSON3.read(resp.body, LimitOrder)
 end
 
-function placeMarketOrder(ticker, order_id, order_side, mo_size, acct_id)
-    body = (; ticker, order_id, order_side, mo_size, acct_id)
+function placeMarketOrder(ticker, order_id, order_side, fill_amount, acct_id; byfunds = false)
+    body = (; ticker, order_id, order_side, fill_amount, acct_id, byfunds)
     resp = HTTP.post(string(SERVER[], "/m_order"), [], JSON3.write(body))
     return JSON3.read(resp.body, MarketOrder)
 end
-
-# submit_market_order!(ob::OrderBook,side::OrderSide,mo_size[,fill_mode::OrderTraits])
-# submit_market_order_byfunds!(ob::OrderBook,side::Symbol,funds[,mode::OrderTraits])
 
 function placeCancelOrder(ticker, order_id, order_side, limit_price, acct_id)
     body = (; ticker, order_id, order_side, limit_price, acct_id)

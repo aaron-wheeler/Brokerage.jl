@@ -121,7 +121,7 @@ function placeMarketOrder(obj) # make this @cacheable ? delete when matched or a
     @assert haskey(obj, :ticker) && !isempty(obj.ticker) # TODO: Check if ticker exists in OMS
     @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: make this service-managed
     @assert haskey(obj, :order_side) && !isempty(obj.order_side) # TODO: Check if either "BUY_ORDER" or "SELL_ORDER"
-    @assert haskey(obj, :mo_size) && !isempty(obj.mo_size)
+    # @assert haskey(obj, :mo_size) && !isempty(obj.mo_size)
     @assert haskey(obj, :acct_id) && !isempty(obj.acct_id) # TODO: make this match existing portfolio id? depends on which one created first... 
     # TODO:
     # if BUY_ORDER
@@ -138,19 +138,20 @@ function placeMarketOrder(obj) # make this @cacheable ? delete when matched or a
     # TODO:
     # from Mapper layer, create and return unique transaction_id
     # order_id = transaction_id
-    order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.mo_size, obj.acct_id)
-
-    # TODO: do the following @asynch
-    # send order to OMS layer for fulfillment
-    processTrade(order)
-
-    # define variable for processTrade and if = true then delete @cachable order? Or do that in processTrade instead?
-
-    return order  
+    if obj.byfunds == false 
+        order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
+        # TODO: do the following @asynch
+        # send order to OMS layer for fulfillment
+        processTrade(order)
+        return order
+    else
+        order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
+        # TODO: do the following @asynch
+        # send order to OMS layer for fulfillment
+        processTrade(order)
+        return order
+    end 
 end
-
-# submit_market_order!(ob::OrderBook,side::OrderSide,mo_size[,fill_mode::OrderTraits])
-# submit_market_order_byfunds!(ob::OrderBook,side::Symbol,funds[,mode::OrderTraits])
 
 function placeCancelOrder(obj) # make this @cacheable ? delete when matched or at EOD?
     @assert haskey(obj, :ticker) && !isempty(obj.ticker) # TODO: Check if ticker exists in OMS

@@ -105,13 +105,13 @@ trade = processLimitOrderPurchase(ticker, order_id, limit_price, limit_size)
 # @test trade[3] == 0 # aka the order was matched completely
 
 # # sell order
-# submit_limit_order!(ob, uob, my_order_id,
+# submit_limit_order!(ob1, uob1, my_order_id,
 #                     SELL_ORDER, my_limit_order_s_price,
 #                     my_limit_order_s_size, my_acct_id)
 # # buy order
 # my_limit_order_b_price = 100
 # my_limit_order_b_size = 5
-# submit_limit_order!(ob, uob, my_order_id,
+# submit_limit_order!(ob1, uob1, my_order_id,
 #                     BUY_ORDER, my_limit_order_b_price,
 #                     my_limit_order_b_size, my_acct_id)
 # TODO - FIX: Right now this order isn't cleared from the active
@@ -131,21 +131,26 @@ submit_market_order_byfunds!(ob::OrderBook,side::Symbol,funds[,mode::OrderTraits
 Functionality is exactly the same as submit_market_order! except available 
 funds (max total price paid on order) is provided, rather than number of shares (order size).
 =#
-# submit_market_order!(ob, BUY_ORDER, 5) # all 5 matched
+# market order
+# submit_market_order!(ob1, BUY_ORDER, 5) # all 5 matched
+
+# market order by funds
+# submit_market_order_byfunds!(ob1, BUY_ORDER, 5.0) # if OrderSize::Int64, should match nothing and return back $5
+# submit_market_order_byfunds!(ob1, BUY_ORDER, 100.0) # if OrderSize::Int64, should match 1 share and return back $0.9899978637695312
 
 #=
     Cancel Order example
 
 cancel_order!(ob,orderid,side,price)
 =#
-# submit_limit_order!(ob, uob, 111, SELL_ORDER, 99.009, 20, 101111)
-# cancel_order!(ob, 111, SELL_ORDER, 99.009)
+# submit_limit_order!(ob1, uob1, 111, SELL_ORDER, 99.009, 20, 101111)
+# cancel_order!(ob1, 111, SELL_ORDER, 99.009)
 
 # Additional functionality
-# best_bid_ask(ob) # returns tuple of best bid and ask prices in the order book
-# book_depth_info(ob) # nested dict of prices, volumes and order counts at a specified max_depth (default = 5)
-# get_acct(ob,acct_id) # return all open orders assigned to account `acct_id`
-# volume_bid_ask(ob)
-# n_orders_bid_ask(ob)
+# best_bid_ask(ob1) # returns tuple of best bid and ask prices in the order book
+# book_depth_info(ob1) # nested dict of prices, volumes and order counts at a specified max_depth (default = 5)
+# get_acct(ob1,acct_id) # return all open orders assigned to account `acct_id`
+# volume_bid_ask(ob1)
+# n_orders_bid_ask(ob1)
 
 # include("test/server_LOB_test.jl")

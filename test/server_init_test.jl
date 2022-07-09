@@ -21,10 +21,10 @@ server = @async Brokerage.run(DBFILE, AUTHFILE)
 # ord3 = Client.placeMarketOrder(1,1211,"SELL_ORDER",7,por1.id)
 # ord4 = Client.placeMarketOrder(1,1281,"BUY_ORDER",7,por1.id)
 
-# ord3 = Client.placeMarketOrder(1,1211,"SELL_ORDER",7,por1.id)
-# ord4 = Client.placeMarketOrder(1,1281,"BUY_ORDER",7,por1.id)
+# ord5 = Client.placeMarketOrder(1,1211,"BUY_ORDER",5.0,por1.id,byfunds = true)
+# ord6 = Client.placeMarketOrder(1,1281,"BUY_ORDER",100.0,por1.id,byfunds = true)
 
-# ord5 = Client.placeLimitOrder(1,1280,"BUY_ORDER",98.0,3,por1.id)
+# ord7 = Client.placeLimitOrder(1,1280,"BUY_ORDER",98.0,3,por1.id)
 # Client.placeCancelOrder(1,1280,"BUY_ORDER",98.0,por1.id)
 
 ## Quote testing

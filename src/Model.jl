@@ -49,6 +49,8 @@ StructTypes.idproperty(::Type{User}) = :id
 
 abstract type Order end
 
+# TODO: Test whether these really need to be mutable. Fix if not. 
+
 mutable struct LimitOrder <: Order
     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets
     order_id::Int64 # TODO: make this service-managed
@@ -69,20 +71,21 @@ mutable struct MarketOrder <: Order
     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets
     order_id::Int64 # service-managed; Do we need this?**
     order_side::String
-    mo_size::Float64
+    fill_amount::Float64 # invest by shares or funds depending on `byfunds` field (default = by shares)
     acct_id::Int64 # same id as portfolio.id
-end # TODO: create field for funds
+    byfunds::Bool
+end
 # no fill_mode field; only `fill_mode=allornone` used for market orders
 
 # default constructors for JSON3
 ==(x::MarketOrder, y::MarketOrder) = x.order_id == y.order_id
-MarketOrder() = MarketOrder(0, 0, "", 0.0, 0)
-MarketOrder(ticker, order_id, order_side, mo_size, acct_id) = MarketOrder(ticker, order_id, order_side, mo_size, acct_id)
+MarketOrder() = MarketOrder(0, 0, "", 0.0, 0, false)
+# MarketOrder(ticker::Int8, order_id::Int64, order_side::String, mo_size::Float64, acct_id::Int64) = MarketOrder(ticker, order_id, order_side, mo_size, acct_id, 0.0)
+# MarketOrder(ticker::Int8, order_id::Int64, order_side::String, acct_id::Int64, funds::Float64) = MarketOrder(ticker, order_id, order_side, 0.0, acct_id, funds)
+MarketOrder(ticker, order_id, order_side, fill_amount, acct_id) = MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, false)
+MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds) = MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds)
 StructTypes.StructType(::Type{MarketOrder}) = StructTypes.Mutable()
 StructTypes.idproperty(::Type{MarketOrder}) = :order_id
-
-# submit_market_order!(ob::OrderBook,side::OrderSide,mo_size[,fill_mode::OrderTraits])
-# submit_market_order_byfunds!(ob::OrderBook,side::Symbol,funds[,mode::OrderTraits])
 
 mutable struct CancelOrder <: Order
     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets

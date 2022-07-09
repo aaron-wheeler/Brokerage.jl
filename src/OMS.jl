@@ -73,21 +73,32 @@ end
 function processMarketOrderSale(order::MarketOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
-    trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),SELL_ORDER,order.mo_size)
+    # determine whether to submit order by share ammount or cash ammount
+    if order.byfunds == false
+        trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),SELL_ORDER,order.fill_amount)
+    else
+        trade = VL_LimitOrderBook.submit_market_order_byfunds!(eval(ob_expr),SELL_ORDER,order.fill_amount)
+    end
     # returns Tuple with 2 elements - ord_lst (list of limit orders that the m_order matched with), left_to_trade (remaining size of un-filled order)
+    # OR 
+    # returns Tuple with 2 elements - ord_lst, funds_leftover (the amount of remaining funds if not enough liquidity was available)
     return trade
 end
 
 function processMarketOrderPurchase(order::MarketOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
-    trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),BUY_ORDER,order.mo_size)
-    # returns Tuple with 2 elements - ord_lst, left_to_trade 
+    # determine whether to submit order by share ammount or cash ammount
+    if order.byfunds == false
+        trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),BUY_ORDER,order.fill_amount)
+    else
+        trade = VL_LimitOrderBook.submit_market_order_byfunds!(eval(ob_expr),BUY_ORDER,order.fill_amount)
+    end
+    # returns Tuple with 2 elements - ord_lst, left_to_trade
+    # OR 
+    # returns Tuple with 2 elements - ord_lst, funds_leftover
     return trade
 end
-
-# submit_market_order!(ob::OrderBook,side::OrderSide,mo_size[,fill_mode::OrderTraits])
-# submit_market_order_byfunds!(ob::OrderBook,side::Symbol,funds[,mode::OrderTraits])
 
 function cancelLimitOrderSale(order::CancelOrder)
     ticker_ob = order.ticker
