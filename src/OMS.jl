@@ -121,8 +121,8 @@ end
 
 function queryBidAsk(ticker)
     ob_expr = Symbol("ob"*"$ticker")
-    spread = VL_LimitOrderBook.best_bid_ask(eval(ob_expr))
-    return spread
+    top_book = VL_LimitOrderBook.best_bid_ask(eval(ob_expr))
+    return top_book
 end
 
 function queryBookDepth(ticker)
@@ -133,14 +133,14 @@ end
 
 function queryBidAskVolume(ticker)
     ob_expr = Symbol("ob"*"$ticker")
-    spread_volume = VL_LimitOrderBook.volume_bid_ask(eval(ob_expr))
-    return spread_volume
+    book_volume = VL_LimitOrderBook.volume_bid_ask(eval(ob_expr))
+    return book_volume
 end
 
 function queryBidAskOrders(ticker)
     ob_expr = Symbol("ob"*"$ticker")
-    n_orders_spread = VL_LimitOrderBook.n_orders_bid_ask(eval(ob_expr))
-    return n_orders_spread
+    n_orders_book = VL_LimitOrderBook.n_orders_bid_ask(eval(ob_expr))
+    return n_orders_book
 end
 
 # TODO: Consider implementing the following fn into `getPortfolio` function?

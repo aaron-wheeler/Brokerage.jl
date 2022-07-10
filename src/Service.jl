@@ -83,77 +83,118 @@ end
 # ======================================================================================== #
 #----- Order Services -----#
 
-function placeLimitOrder(obj) # make this @cacheable ? delete when matched or at EOD?
-    @assert haskey(obj, :ticker) && !isempty(obj.ticker) # TODO: Check if ticker exists in OMS
+# TODO: make a @cacheable generalized function for creating orders, which is then called by placeOrder fns and deleted
+
+struct InsufficientFunds <: Exception end
+struct InsufficientShares <: Exception end
+
+function placeLimitOrder(obj)
+    @assert haskey(obj, :ticker) && !isempty(obj.ticker)
     @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: make this service-managed
-    @assert haskey(obj, :order_side) && !isempty(obj.order_side) # TODO: Check if either "BUY_ORDER" or "SELL_ORDER"
+    @assert haskey(obj, :order_side) && !isempty(obj.order_side)
     @assert haskey(obj, :limit_price) && !isempty(obj.limit_price)
     @assert haskey(obj, :limit_size) && !isempty(obj.limit_size)
-    @assert haskey(obj, :acct_id) && !isempty(obj.acct_id) # TODO: make this match existing portfolio id? depends on which one created first... 
-    # TODO:
-    # if BUY_ORDER
-    # check OMS layer to see how many funds are needed
-    # from Mapper layer, check if sufficient funds available
-    # return either rejection or acknowledgement @info message
-    # break if rejection
+    @assert haskey(obj, :acct_id) && !isempty(obj.acct_id)
 
-    # if SELL_ORDER
-    # from Mapper layer, check if sufficient shares available
-    # return either rejection or acknowledgement @info message
-    # break if rejection
-
-    # TODO:
-    # from Mapper layer, create and return unique transaction_id
-    # order_id = transaction_id
-    # TODO: Set-up fill_mode functionality
-    order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
-
-    # TODO: do the following @asynch
-    # send order to OMS layer for fulfillment
-    processTrade(order)
-
-    # define variable for processTrade and if = true then delete @cachable order? Or do that in processTrade instead?
-
-    return order  
+    if obj.order_side == "BUY_ORDER"
+        # check if sufficient funds available
+        portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio cash
+        if portfolio.cash ≥ obj.limit_price * obj.limit_size
+            # create and send order to OMS layer for fulfillment
+            # TODO: create and return unique obj.order_id = transaction_id
+            order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
+            processTradeBid(order) # TODO: integrate @asynch functionality
+            return order # return order confirmation
+        else
+            throw(InsufficientFunds())            
+        end
+    else # if obj.order_side == "SELL_ORDER"
+        # check if sufficient shares available
+        portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio holdings
+        # TODO: Implement short-selling functionality
+        if in.(obj.ticker, Ref(portfolio.holdings)) == true
+            # create and send order to OMS layer for fulfillment
+            # TODO: create and return unique obj.order_id = transaction_id
+            order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
+            processTradeAsk(order) # TODO: integrate @asynch functionality
+            return order # return order confirmation
+        else
+            throw(InsufficientShares())            
+        end
+    end
 end
 
-function placeMarketOrder(obj) # make this @cacheable ? delete when matched or at EOD?
-    @assert haskey(obj, :ticker) && !isempty(obj.ticker) # TODO: Check if ticker exists in OMS
+function placeMarketOrder(obj)
+    @assert haskey(obj, :ticker) && !isempty(obj.ticker)
     @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: make this service-managed
-    @assert haskey(obj, :order_side) && !isempty(obj.order_side) # TODO: Check if either "BUY_ORDER" or "SELL_ORDER"
-    # @assert haskey(obj, :mo_size) && !isempty(obj.mo_size)
-    @assert haskey(obj, :acct_id) && !isempty(obj.acct_id) # TODO: make this match existing portfolio id? depends on which one created first... 
-    # TODO:
-    # if BUY_ORDER
-    # check OMS layer to see how many funds are needed
-    # from Mapper layer, check if sufficient funds available
-    # return either rejection or acknowledgement @info message
-    # break if rejection
+    @assert haskey(obj, :order_side) && !isempty(obj.order_side)
+    @assert haskey(obj, :fill_amount) && !isempty(obj.fill_amount)
+    @assert haskey(obj, :acct_id) && !isempty(obj.acct_id)
 
-    # if SELL_ORDER
-    # from Mapper layer, check if sufficient shares available
-    # return either rejection or acknowledgement @info message
-    # break if rejection
+    if obj.byfunds == false
+        # Check market order by shares
+        if obj.order_side == "BUY_ORDER"
+            # check if sufficient funds available
+            portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio cash
+            best_ask = (getBidAsk(obj.ticker))[2]
+            if portfolio.cash ≥ best_ask * obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
+                # create and send order to OMS layer for fulfillment
+                # TODO: create and return unique obj.order_id = transaction_id
+                order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
+                processTradeBuy(order) # TODO: integrate @asynch functionality
+                return order # return order confirmation
+            else
+                throw(InsufficientFunds())            
+            end
+        else # if obj.order_side == "SELL_ORDER"
+            # check if sufficient shares available
+            portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio holdings
+            # TODO: Implement short-selling functionality
+            if in.(obj.ticker, Ref(portfolio.holdings)) == true
+                # create and send order to OMS layer for fulfillment
+                # TODO: create and return unique obj.order_id = transaction_id
+                order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
+                processTradeSell(order) # TODO: integrate @asynch functionality
+                return order # return order confirmation
+            else
+                throw(InsufficientShares())            
+            end
+        end
+    # else
+    #     # Check market order by funds
+    #     if obj.order_side == "BUY_ORDER"
+    #         # check if sufficient funds available
+    #         portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio cash
+    #         best_ask = (getBidAsk(obj.ticker))[2]
+    #         if portfolio.cash ≥ best_ask * obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
+    #             # create and send order to OMS layer for fulfillment
+    #             # TODO: create and return unique obj.order_id = transaction_id
+    #             order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
+    #             processTradeBuy(order) # TODO: integrate @asynch functionality
+    #             return order # return order confirmation
+    #         else
+    #             throw(InsufficientFunds())            
+    #         end
+    #     else # if obj.order_side == "SELL_ORDER"
+    #         # check if sufficient shares available
+    #         portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio holdings
+    #         # TODO: Implement short-selling functionality
+    #         if in.(obj.ticker, Ref(portfolio.holdings)) == true
+    #             # create and send order to OMS layer for fulfillment
+    #             # TODO: create and return unique obj.order_id = transaction_id
+    #             order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
+    #             processTradeSell(order) # TODO: integrate @asynch functionality
+    #             return order # return order confirmation
+    #         else
+    #             throw(InsufficientShares())            
+    #         end
+    #     end
+    end
 
-    # TODO:
-    # from Mapper layer, create and return unique transaction_id
-    # order_id = transaction_id
-    if obj.byfunds == false 
-        order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
-        # TODO: do the following @asynch
-        # send order to OMS layer for fulfillment
-        processTrade(order)
-        return order
-    else
-        order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
-        # TODO: do the following @asynch
-        # send order to OMS layer for fulfillment
-        processTrade(order)
-        return order
-    end 
+
 end
 
-function placeCancelOrder(obj) # make this @cacheable ? delete when matched or at EOD?
+function placeCancelOrder(obj)
     @assert haskey(obj, :ticker) && !isempty(obj.ticker) # TODO: Check if ticker exists in OMS
     @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: Check if exists in LOB and portfolio.id -> pendingorders
     @assert haskey(obj, :order_side) && !isempty(obj.order_side)
@@ -166,8 +207,6 @@ function placeCancelOrder(obj) # make this @cacheable ? delete when matched or a
     # send order to OMS layer for fulfillment
     processTrade(order)
 
-    # define variable for processTrade and if = true then delete @cachable order? Or do that in processTrade instead?
-
     return order  
 end
 
@@ -175,8 +214,8 @@ end
 #----- Quote Services -----#
 
 function getBidAsk(ticker)
-    spread = OMS.queryBidAsk(ticker)
-    return spread
+    top_book = OMS.queryBidAsk(ticker)
+    return top_book
 end
 
 function getBookDepth(ticker)
@@ -185,59 +224,63 @@ function getBookDepth(ticker)
 end
 
 function getBidAskVolume(ticker)
-    spread_volume = OMS.queryBidAskVolume(ticker)
-    return spread_volume
+    book_volume = OMS.queryBidAskVolume(ticker)
+    return book_volume
 end
 
 function getBidAskOrders(ticker)
-    n_orders_spread = OMS.queryBidAskOrders(ticker)
-    return n_orders_spread
+    n_orders_book = OMS.queryBidAskOrders(ticker)
+    return n_orders_book
 end
 
 # ======================================================================================== #
 #----- Trade Services -----#
 
-function processTrade(order::LimitOrder)
-    # navigate order to correct location
-    if order.order_side == "SELL_ORDER"
-        trade = OMS.processLimitOrderSale(order)
-        @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        # TODO: incorporate complete trade functionality below
-        # if trade[1] == nothing
-        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        #     # TODO: update portfolio accordingly           
-        # end
-    elseif order.order_side == "BUY_ORDER"
-        trade = OMS.processLimitOrderPurchase(order)
-        @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        # TODO: incorporate complete trade functionality below
-        # if trade[1] == nothing
-        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        #     # TODO: update portfolio accordingly           
-        # end
-    end
-    # return true ?
+function processTradeBid(order::LimitOrder)
+    trade = OMS.processLimitOrderPurchase(order)
+    @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+    # TODO: incorporate complete trade functionality below
+    # if trade[1] == nothing
+    #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+    #     # TODO: update portfolio accordingly           
+    # end
+
+    # return
 end
 
-function processTrade(order::MarketOrder)
-    # navigate order to correct location
-    if order.order_side == "SELL_ORDER"
-        trade = OMS.processMarketOrderSale(order)
-        @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        # TODO: incorporate complete trade functionality below
-        # if trade[1] == nothing
-        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        #     # TODO: update portfolio accordingly           
-        # end
-    elseif order.order_side == "BUY_ORDER"
-        trade = OMS.processMarketOrderPurchase(order)
-        @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        # TODO: incorporate complete trade functionality below
-        # if trade[1] == nothing
-        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        #     # TODO: update portfolio accordingly           
-        # end
-    end
+function processTradeAsk(order::LimitOrder)
+    trade = OMS.processLimitOrderSale(order)
+    @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+    # TODO: incorporate complete trade functionality below
+    # if trade[1] == nothing
+    #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+    #     # TODO: update portfolio accordingly           
+    # end
+
+    # return
+end
+
+function processTradeBuy(order::MarketOrder)
+    trade = OMS.processMarketOrderPurchase(order)
+    @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+    # TODO: incorporate complete trade functionality below
+    # if trade[1] == nothing
+    #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+    #     # TODO: update portfolio accordingly           
+    # end
+
+    # return
+end
+
+function processTradeSell(order::MarketOrder)
+    trade = OMS.processMarketOrderSale(order)
+    @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+    # TODO: incorporate complete trade functionality below
+    # if trade[1] == nothing
+    #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+    #     # TODO: update portfolio accordingly           
+    # end
+
     # return true ?
 end
 

@@ -76,7 +76,7 @@ end
 #----- Quote Functionality -----#
 
 function getBidAsk(ticker) # returns tuple of best bid and ask prices in the order book
-    resp = HTTP.get(string(SERVER[], "/quote_spread/$ticker"))
+    resp = HTTP.get(string(SERVER[], "/quote_top_book/$ticker"))
     return JSON3.read(resp.body, Tuple{Float64, Float64}) # could also skip Tuple arg and just return as JSON3 Array
 end
 
@@ -86,12 +86,12 @@ function getBookDepth(ticker) # nested dict of prices, volumes and order counts 
 end
 
 function getBidAskVolume(ticker) # returns tuple of total bid and ask volume from order book
-    resp = HTTP.get(string(SERVER[], "/quote_spread_volume/$ticker"))
+    resp = HTTP.get(string(SERVER[], "/quote_book_volume/$ticker"))
     return JSON3.read(resp.body, Tuple{Int64, Int64}) # this Tuple type must match the one specified for order sizes in OMS layer
 end
 
 function getBidAskOrders(ticker) # returns tuple of total number of orders on each side of order book
-    resp = HTTP.get(string(SERVER[], "/quote_spread_orders/$ticker"))
+    resp = HTTP.get(string(SERVER[], "/quote_book_orders/$ticker"))
     return JSON3.read(resp.body, Tuple{Int32, Int32}) # Int32 as given by VL_LimitOrderBook
 end
 

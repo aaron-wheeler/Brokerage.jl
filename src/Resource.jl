@@ -49,16 +49,16 @@ HTTP.register!(ROUTER, "POST", "/c_order", placeCancelOrder)
 #----- QUOTE ROUTING -----#
 
 getBidAsk(req) = Service.getBidAsk(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
-HTTP.register!(ROUTER, "GET", "/quote_spread/*", getBidAsk)
+HTTP.register!(ROUTER, "GET", "/quote_top_book/*", getBidAsk)
 
 getBookDepth(req) = Service.getBookDepth(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
 HTTP.register!(ROUTER, "GET", "/quote_depth/*", getBookDepth)
 
 getBidAskVolume(req) = Service.getBidAskVolume(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
-HTTP.register!(ROUTER, "GET", "/quote_spread_volume/*", getBidAskVolume)
+HTTP.register!(ROUTER, "GET", "/quote_book_volume/*", getBidAskVolume)
 
 getBidAskOrders(req) = Service.getBidAskOrders(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
-HTTP.register!(ROUTER, "GET", "/quote_spread_orders/*", getBidAskOrders)
+HTTP.register!(ROUTER, "GET", "/quote_book_orders/*", getBidAskOrders)
 
 # ======================================================================================== #
 
