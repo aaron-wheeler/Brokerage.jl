@@ -20,15 +20,20 @@ mutable struct Portfolio
     name::String # passed by client
     cash::Float64 # passed by client, TODO: make this BigInt
     timespicked::Int64 # service-managed
-    holdings::Vector{Int64} # TODO: avoid making this 64-bit
+    # holdings::Vector{Int64} # TODO: avoid making this 64-bit
+    holdings::Dict{Symbol, Float64} # TODO: make this {Int8, BigInt}
+    # ticker::Vector{Int64}
+    # shares::Vector{Float64}
     pendingorders::Vector{Int64} # service-managed
     completedorders::Vector{Int64} # service-managed
 end
 
 # default constructors for JSON3
 ==(x::Portfolio, y::Portfolio) = x.id == y.id
-Portfolio() = Portfolio(0, 0, "", 0.0, 0, Int[], Int[0], Int[0])
+Portfolio() = Portfolio(0, 0, "", 0.0, 0, Dict(), Int[0], Int[0])
+# Portfolio() = Portfolio(0, 0, "", 0.0, 0, Int[], Float64[], Int[0], Int[0])
 Portfolio(name, cash, holdings) = Portfolio(0, 0, name, cash, 0, holdings, Int[0], Int[0])
+# Portfolio(name, cash, ticker, shares) = Portfolio(0, 0, name, cash, 0, ticker, shares, Int[0], Int[0])
 StructTypes.StructType(::Type{Portfolio}) = StructTypes.Mutable()
 StructTypes.idproperty(::Type{Portfolio}) = :id # for 'get' function in Mapper; different portfolio rows with the same id # refer to the same portfolio
 

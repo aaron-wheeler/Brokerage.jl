@@ -30,10 +30,19 @@ function createPortfolio(name, cash, holdings)
     resp = HTTP.post(string(SERVER[], "/portfolio"), [], JSON3.write(body))
     return JSON3.read(resp.body, Portfolio)
 end
+# function createPortfolio(name, cash, ticker, shares)
+#     body = (; name, cash, ticker, shares) # JSON3 will serialize this named tuple into a json object for the Resource create portfolio function 
+#     resp = HTTP.post(string(SERVER[], "/portfolio"), [], JSON3.write(body))
+#     return JSON3.read(resp.body, Portfolio)
+# end
 
-function getPortfolio(id)
+# function getPortfolio(id)
+#     resp = HTTP.get(string(SERVER[], "/portfolio/$id"))
+#     return JSON3.read(resp.body, Portfolio)
+# end
+function getHoldings(id)
     resp = HTTP.get(string(SERVER[], "/portfolio/$id"))
-    return JSON3.read(resp.body, Portfolio)
+    return
 end
 
 function updatePortfolio(portfolio)

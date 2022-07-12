@@ -8,10 +8,12 @@ server = @async Brokerage.run(DBFILE, AUTHFILE)
 
 ## do the following in a seperate client terminal
 
-# Client.createUser("aaron", "password123")
-# user = Client.loginUser("aaron", "password123")
+Client.createUser("aaron", "password123")
+user = Client.loginUser("aaron", "password123")
 
-# por1 = Client.createPortfolio("Trader 1", 10500.0, [1, 2])
+por1 = Client.createPortfolio("Trader 1", 10500.0, Dict(1 => 10.0, 2 => 12.5))
+Client.getHoldings(por1.id)
+# por1 = Client.createPortfolio("Trader 1", 10500.0, [1, 2], [10.0, 12.5])
 
 ## Order testing
 # ord1 = Client.placeLimitOrder(1,1287,"SELL_ORDER",99.0,7,por1.id)

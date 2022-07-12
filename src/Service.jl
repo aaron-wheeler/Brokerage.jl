@@ -11,30 +11,37 @@ using ..Model, ..Mapper, ..Auth, ..OMS
 function createPortfolio(obj)
     @assert haskey(obj, :name) && !isempty(obj.name)
     @assert haskey(obj, :holdings) && !isempty(obj.holdings)
+    # @assert haskey(obj, :ticker) && !isempty(obj.ticker)
+    # @assert haskey(obj, :shares) && !isempty(obj.shares)
     @assert haskey(obj, :cash) && 1.0 < obj.cash < 1000000.0
     portfolio = Portfolio(obj.name, obj.cash, obj.holdings)
+    # portfolio = Portfolio(obj.name, obj.cash, obj.ticker, obj.shares)
     Mapper.create!(portfolio)
     # NormalizedMapper.create!(portfolio)
     return portfolio
 end
 
-@cacheable Dates.Hour(1) function getPortfolio(id::Int64)::Portfolio
-    Mapper.get(id)
-    # NormalizedMapper.get(id)
+# @cacheable Dates.Hour(1) function getPortfolio(id::Int64)::Portfolio
+#     Mapper.get(id)
+#     # NormalizedMapper.get(id)
+# end
+function getHoldings(id::Int64)
+    Mapper.getHoldings(id)
+    return
 end
 
 # consistent with model struct, not letting client define their own id, we manage these as a service
-function updatePortfolio(id, updated)
-    portfolio = Mapper.get(id)
-    # portfolio = NormalizedMapper.get(id)
-    portfolio.name = updated.name
-    portfolio.cash = updated.cash
-    portfolio.holdings = updated.holdings
-    Mapper.update(portfolio)
-    # NormalizedMapper.update(portfolio)
-    delete!(ExpiringCaches.getcache(getPortfolio), (id,))
-    return portfolio
-end
+# function updatePortfolio(id, updated)
+#     portfolio = Mapper.get(id)
+#     # portfolio = NormalizedMapper.get(id)
+#     portfolio.name = updated.name
+#     portfolio.cash = updated.cash
+#     portfolio.holdings = updated.holdings
+#     Mapper.update(portfolio)
+#     # NormalizedMapper.update(portfolio)
+#     delete!(ExpiringCaches.getcache(getPortfolio), (id,))
+#     return portfolio
+# end
 
 function deletePortfolio(id)
     Mapper.delete(id)
@@ -43,19 +50,19 @@ function deletePortfolio(id)
     return
 end
 
-function pickRandomPortfolio()
-    portfolios = Mapper.getAllPortfolios()
-    # portfolios = NormalizedMapper.getAllPortfolios()
-    leastTimesPicked = minimum(x->x.timespicked, portfolios)
-    leastPickedPortfolio = filter(x->x.timespicked == leastTimesPicked, portfolios)
-    pickedPortfolio = rand(leastPickedPortfolio)
-    pickedPortfolio.timespicked += 1
-    Mapper.update(pickedPortfolio)
-    # NormalizedMapper.update(pickedPortfolio)
-    delete!(ExpiringCaches.getcache(getPortfolio), (pickedPortfolio.id,))
-    @info "picked portfolio = $(pickedPortfolio.name) on thread = $(Threads.threadid())"
-    return pickedPortfolio
-end
+# function pickRandomPortfolio()
+#     portfolios = Mapper.getAllPortfolios()
+#     # portfolios = NormalizedMapper.getAllPortfolios()
+#     leastTimesPicked = minimum(x->x.timespicked, portfolios)
+#     leastPickedPortfolio = filter(x->x.timespicked == leastTimesPicked, portfolios)
+#     pickedPortfolio = rand(leastPickedPortfolio)
+#     pickedPortfolio.timespicked += 1
+#     Mapper.update(pickedPortfolio)
+#     # NormalizedMapper.update(pickedPortfolio)
+#     delete!(ExpiringCaches.getcache(getPortfolio), (pickedPortfolio.id,))
+#     @info "picked portfolio = $(pickedPortfolio.name) on thread = $(Threads.threadid())"
+#     return pickedPortfolio
+# end
 
 # creates User struct defined in Model.jl
 function createUser(user)
@@ -98,7 +105,7 @@ function placeLimitOrder(obj)
 
     if obj.order_side == "BUY_ORDER"
         # check if sufficient funds available
-        portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio cash
+        portfolio = Mapper.get(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio cash
         if portfolio.cash ≥ obj.limit_price * obj.limit_size
             # create and send order to OMS layer for fulfillment
             # TODO: create and return unique obj.order_id = transaction_id
@@ -110,9 +117,11 @@ function placeLimitOrder(obj)
         end
     else # if obj.order_side == "SELL_ORDER"
         # check if sufficient shares available
-        portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio holdings
+        portfolio = Mapper.get(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio holdings
         # TODO: Implement short-selling functionality
-        if in.(obj.ticker, Ref(portfolio.holdings)) == true
+        ticker = obj.ticker
+        shares_owned = get(portfolio.holdings, Symbol("$ticker"), 0.0) 
+        if shares_owned ≥ obj.limit_size
             # create and send order to OMS layer for fulfillment
             # TODO: create and return unique obj.order_id = transaction_id
             order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
@@ -132,10 +141,10 @@ function placeMarketOrder(obj)
     @assert haskey(obj, :acct_id) && !isempty(obj.acct_id)
 
     if obj.byfunds == false
-        # Check market order by shares
+        # administer market order by shares
         if obj.order_side == "BUY_ORDER"
             # check if sufficient funds available
-            portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio cash
+            portfolio = Mapper.get(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio cash
             best_ask = (getBidAsk(obj.ticker))[2]
             if portfolio.cash ≥ best_ask * obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
                 # create and send order to OMS layer for fulfillment
@@ -148,9 +157,11 @@ function placeMarketOrder(obj)
             end
         else # if obj.order_side == "SELL_ORDER"
             # check if sufficient shares available
-            portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio holdings
+            portfolio = Mapper.get(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio holdings
             # TODO: Implement short-selling functionality
-            if in.(obj.ticker, Ref(portfolio.holdings)) == true
+            ticker = obj.ticker
+            shares_owned = get(portfolio.holdings, Symbol("$ticker"), 0.0)
+            if shares_owned > 0.0
                 # create and send order to OMS layer for fulfillment
                 # TODO: create and return unique obj.order_id = transaction_id
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
@@ -160,53 +171,50 @@ function placeMarketOrder(obj)
                 throw(InsufficientShares())            
             end
         end
-    # else
-    #     # Check market order by funds
-    #     if obj.order_side == "BUY_ORDER"
-    #         # check if sufficient funds available
-    #         portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio cash
-    #         best_ask = (getBidAsk(obj.ticker))[2]
-    #         if portfolio.cash ≥ best_ask * obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
-    #             # create and send order to OMS layer for fulfillment
-    #             # TODO: create and return unique obj.order_id = transaction_id
-    #             order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
-    #             processTradeBuy(order) # TODO: integrate @asynch functionality
-    #             return order # return order confirmation
-    #         else
-    #             throw(InsufficientFunds())            
-    #         end
-    #     else # if obj.order_side == "SELL_ORDER"
-    #         # check if sufficient shares available
-    #         portfolio = Mapper.get(id) # TODO: make Mapper fn that just grabs Portfolio holdings
-    #         # TODO: Implement short-selling functionality
-    #         if in.(obj.ticker, Ref(portfolio.holdings)) == true
-    #             # create and send order to OMS layer for fulfillment
-    #             # TODO: create and return unique obj.order_id = transaction_id
-    #             order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
-    #             processTradeSell(order) # TODO: integrate @asynch functionality
-    #             return order # return order confirmation
-    #         else
-    #             throw(InsufficientShares())            
-    #         end
-    #     end
+    else
+        # administer market order by funds
+        if obj.order_side == "BUY_ORDER"
+            # check if sufficient funds available
+            portfolio = Mapper.get(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio cash
+            if portfolio.cash ≥ obj.fill_amount
+                # create and send order to OMS layer for fulfillment
+                # TODO: create and return unique obj.order_id = transaction_id
+                order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
+                processTradeBuy(order) # TODO: integrate @asynch functionality
+                return order # return order confirmation
+            else
+                throw(InsufficientFunds())            
+            end
+        else # if obj.order_side == "SELL_ORDER"
+            # check if sufficient shares available
+            portfolio = Mapper.get(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio holdings
+            # TODO: Implement short-selling functionality
+            ticker = obj.ticker
+            best_ask = (getBidAsk(obj.ticker))[2]
+            shares_owned = get(portfolio.holdings, Symbol("$ticker"), 0.0)
+            if shares_owned * best_ask > obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
+                # create and send order to OMS layer for fulfillment
+                # TODO: create and return unique obj.order_id = transaction_id
+                order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
+                processTradeSell(order) # TODO: integrate @asynch functionality
+                return order # return order confirmation
+            else
+                throw(InsufficientShares())            
+            end
+        end
     end
-
-
 end
 
 function placeCancelOrder(obj)
-    @assert haskey(obj, :ticker) && !isempty(obj.ticker) # TODO: Check if ticker exists in OMS
+    @assert haskey(obj, :ticker) && !isempty(obj.ticker)
     @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: Check if exists in LOB and portfolio.id -> pendingorders
     @assert haskey(obj, :order_side) && !isempty(obj.order_side)
-    @assert haskey(obj, :limit_price) && !isempty(obj.limit_price) # TODO: Check if matches limit_price of order_id found in earlier step
+    @assert haskey(obj, :limit_price) && !isempty(obj.limit_price)
     @assert haskey(obj, :acct_id) && !isempty(obj.acct_id)
   
     order = CancelOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.acct_id)
-
-    # TODO: do the following @asynch
     # send order to OMS layer for fulfillment
-    processTrade(order)
-
+    cancelTrade(order) # TODO: integrate @asynch functionality (?)
     return order  
 end
 
@@ -284,7 +292,7 @@ function processTradeSell(order::MarketOrder)
     # return true ?
 end
 
-function processTrade(order::CancelOrder)
+function cancelTrade(order::CancelOrder)
     # navigate order to correct location
     if order.order_side == "SELL_ORDER"
         canceled_trade = OMS.cancelLimitOrderSale(order)
