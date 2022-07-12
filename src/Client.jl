@@ -41,8 +41,13 @@ end
 #     return JSON3.read(resp.body, Portfolio)
 # end
 function getHoldings(id)
-    resp = HTTP.get(string(SERVER[], "/portfolio/$id"))
+    resp = HTTP.get(string(SERVER[], "/portfolio_holdings/$id"))
     return JSON3.read(resp.body, NamedTuple)
+end
+
+function getCash(id)
+    resp = HTTP.get(string(SERVER[], "/portfolio_cash/$id"))
+    return JSON3.read(resp.body, Float64)
 end
 
 function updatePortfolio(portfolio)

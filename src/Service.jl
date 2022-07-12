@@ -30,6 +30,11 @@ function getHoldings(id::Int64)
     return holdings
 end
 
+function getCash(id::Int64)
+    cash = Mapper.getCash(id)
+    return cash
+end
+
 # consistent with model struct, not letting client define their own id, we manage these as a service
 # function updatePortfolio(id, updated)
 #     portfolio = Mapper.get(id)
@@ -105,8 +110,8 @@ function placeLimitOrder(obj)
 
     if obj.order_side == "BUY_ORDER"
         # check if sufficient funds available
-        portfolio = Mapper.get(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio cash
-        if portfolio.cash ≥ obj.limit_price * obj.limit_size
+        cash = Mapper.getCash(obj.acct_id)
+        if cash ≥ obj.limit_price * obj.limit_size
             # create and send order to OMS layer for fulfillment
             # TODO: create and return unique obj.order_id = transaction_id
             order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
@@ -117,7 +122,7 @@ function placeLimitOrder(obj)
         end
     else # if obj.order_side == "SELL_ORDER"
         # check if sufficient shares available
-        holdings = Mapper.getHoldings(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio holdings
+        holdings = Mapper.getHoldings(obj.acct_id)
         # TODO: Implement short-selling functionality
         ticker = obj.ticker
         shares_owned = get(holdings, Symbol("$ticker"), 0.0) 
@@ -144,9 +149,9 @@ function placeMarketOrder(obj)
         # administer market order by shares
         if obj.order_side == "BUY_ORDER"
             # check if sufficient funds available
-            portfolio = Mapper.get(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio cash
+            cash = Mapper.getCash(obj.acct_id)
             best_ask = (getBidAsk(obj.ticker))[2]
-            if portfolio.cash ≥ best_ask * obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
+            if cash ≥ best_ask * obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
                 # create and send order to OMS layer for fulfillment
                 # TODO: create and return unique obj.order_id = transaction_id
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
@@ -157,7 +162,7 @@ function placeMarketOrder(obj)
             end
         else # if obj.order_side == "SELL_ORDER"
             # check if sufficient shares available
-            holdings = Mapper.getHoldings(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio holdings
+            holdings = Mapper.getHoldings(obj.acct_id)
             # TODO: Implement short-selling functionality
             ticker = obj.ticker
             shares_owned = get(holdings, Symbol("$ticker"), 0.0)
@@ -175,8 +180,8 @@ function placeMarketOrder(obj)
         # administer market order by funds
         if obj.order_side == "BUY_ORDER"
             # check if sufficient funds available
-            portfolio = Mapper.get(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio cash
-            if portfolio.cash ≥ obj.fill_amount
+            cash = Mapper.getCash(obj.acct_id)
+            if cash ≥ obj.fill_amount
                 # create and send order to OMS layer for fulfillment
                 # TODO: create and return unique obj.order_id = transaction_id
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
@@ -187,7 +192,7 @@ function placeMarketOrder(obj)
             end
         else # if obj.order_side == "SELL_ORDER"
             # check if sufficient shares available
-            holdings = Mapper.getHoldings(obj.acct_id) # TODO: make Mapper fn that just grabs Portfolio holdings
+            holdings = Mapper.getHoldings(obj.acct_id)
             # TODO: Implement short-selling functionality
             ticker = obj.ticker
             best_ask = (getBidAsk(obj.ticker))[2]

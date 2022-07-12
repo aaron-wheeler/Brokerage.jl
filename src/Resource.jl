@@ -18,7 +18,10 @@ HTTP.register!(ROUTER, "POST", "/portfolio", createPortfolio) # when the method 
 # getPortfolio(req) = Service.getPortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]))::Portfolio
 # HTTP.register!(ROUTER, "GET", "/portfolio/*", getPortfolio) # asterick here means match anything after the '/'
 getHoldings(req) = Service.getHoldings(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
-HTTP.register!(ROUTER, "GET", "/portfolio/*", getHoldings) # asterick here means match anything after the '/'
+HTTP.register!(ROUTER, "GET", "/portfolio_holdings/*", getHoldings) # asterick here means match anything after the '/'
+
+getCash(req) = Service.getCash(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
+HTTP.register!(ROUTER, "GET", "/portfolio_cash/*", getCash)
 
 # the Portfolio must be passed in by the client here 
 updatePortfolio(req) = Service.updatePortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]), JSON3.read(req.body, Portfolio))::Portfolio

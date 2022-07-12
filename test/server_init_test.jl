@@ -13,21 +13,22 @@ user = Client.loginUser("aaron", "password123")
 
 por1 = Client.createPortfolio("Trader 1", 10500.0, Dict(1 => 10.0, 2 => 12.5))
 holdings1 = Client.getHoldings(por1.id)
+cash1 = Client.getCash(por1.id)
 # por1 = Client.createPortfolio("Trader 1", 10500.0, [1, 2], [10.0, 12.5])
 
 ## Order testing
-# ord1 = Client.placeLimitOrder(1,1287,"SELL_ORDER",99.0,7,por1.id)
-# ord2 = Client.placeLimitOrder(1,1283,"BUY_ORDER",100.0,7,por1.id)
+ord1 = Client.placeLimitOrder(1,1287,"SELL_ORDER",99.0,7,por1.id)
+ord2 = Client.placeLimitOrder(1,1283,"BUY_ORDER",100.0,7,por1.id)
 # # OMS.ob1 # changed order book can only be seen on server side terminal ** (haven't incorporated qoute service yet)
 
-# ord3 = Client.placeMarketOrder(1,1211,"SELL_ORDER",7,por1.id)
-# ord4 = Client.placeMarketOrder(1,1281,"BUY_ORDER",7,por1.id)
+ord3 = Client.placeMarketOrder(1,1211,"SELL_ORDER",7,por1.id)
+ord4 = Client.placeMarketOrder(1,1281,"BUY_ORDER",7,por1.id)
 
-# ord5 = Client.placeMarketOrder(1,1211,"BUY_ORDER",5.0,por1.id,byfunds = true)
-# ord6 = Client.placeMarketOrder(1,1281,"BUY_ORDER",100.0,por1.id,byfunds = true)
+ord5 = Client.placeMarketOrder(1,1211,"BUY_ORDER",5.0,por1.id,byfunds = true)
+ord6 = Client.placeMarketOrder(1,1281,"BUY_ORDER",100.0,por1.id,byfunds = true)
 
-# ord7 = Client.placeLimitOrder(1,1280,"BUY_ORDER",98.0,3,por1.id)
-# Client.placeCancelOrder(1,1280,"BUY_ORDER",98.0,por1.id)
+ord7 = Client.placeLimitOrder(1,1280,"BUY_ORDER",98.0,3,por1.id)
+Client.placeCancelOrder(1,1280,"BUY_ORDER",98.0,por1.id)
 
 ## Quote testing
 # spread = Client.getBidAsk(1)
