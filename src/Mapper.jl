@@ -167,9 +167,12 @@ end
 #     """, (id, user.id)))
 # end
 function getHoldings(id)
-    cursor = execute("SELECT * FROM holdings WHERE portfolio_id = ?", (id,))
-    holdings = cursor |> columntable # makes NamedTuple of holdings
+    cursor = execute("SELECT ticker, shares FROM holdings WHERE portfolio_id = ?", (id,))
+    tick_share_table = cursor |> columntable # makes NamedTuple of holdings
     # NamedTuple{(:portfolio_id, :userid, :ticker, :shares), Tuple{Vector{Int64}, Vector{Int64}, Vector{String}, Vector{Float64}}}
+    ticker_keys = Tuple(Symbol.(tick_share_table[:ticker]))
+    share_vals = Tuple(tick_share_table[:shares])
+    holdings = (; zip(ticker_keys, share_vals)...)
     return holdings
 end
 

@@ -42,7 +42,7 @@ end
 # end
 function getHoldings(id)
     resp = HTTP.get(string(SERVER[], "/portfolio/$id"))
-    return
+    return JSON3.read(resp.body, NamedTuple)
 end
 
 function updatePortfolio(portfolio)

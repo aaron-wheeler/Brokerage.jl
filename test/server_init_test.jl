@@ -12,7 +12,7 @@ Client.createUser("aaron", "password123")
 user = Client.loginUser("aaron", "password123")
 
 por1 = Client.createPortfolio("Trader 1", 10500.0, Dict(1 => 10.0, 2 => 12.5))
-Client.getHoldings(por1.id)
+holdings1 = Client.getHoldings(por1.id)
 # por1 = Client.createPortfolio("Trader 1", 10500.0, [1, 2], [10.0, 12.5])
 
 ## Order testing
