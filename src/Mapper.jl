@@ -17,6 +17,7 @@ function init(dbfile)
     DB_POOL[] = ConnectionPools.Pod(SQLite.DB, Threads.nthreads(), 60, 1000, new)
     if !isfile(dbfile)
         db = SQLite.DB(dbfile)
+        # TODO: Make portfolio id UNIQUE
         DBInterface.execute(db, """
             CREATE TABLE portfolio (
                 id INTEGER,
@@ -153,6 +154,28 @@ function update(portfolio)
         SET transaction_id = ?
         WHERE portfolio_id = ? AND userid = ?
     """, (portfolio.completedorders, [portfolio.id for _ = 1:length(portfolio.completedorders)], [user.id for _ = 1:length(portfolio.completedorders)]); executemany=true)
+    return
+end
+
+# TODO: remove user dependency
+function update_holdings(id, holdings)
+    user = Contexts.getuser()
+    execute("""
+        DELETE FROM holdings WHERE portfolio_id = ? AND userid = ?
+    """, (id, user.id))
+    execute("""
+        INSERT INTO holdings (portfolio_id, userid, ticker, shares) VALUES (?, ?, ?, ?)
+    """, ([id for _ = 1:length(holdings)], [user.id for _ = 1:length(holdings)], [String(i) for i in keys(holdings)], [i for i in values(holdings)]); executemany=true)
+    return
+end
+
+function update_cash(id, cash)
+    user = Contexts.getuser()
+    execute("""
+        UPDATE portfolio
+        SET cash = ?,
+        WHERE id = ?
+    """, (cash, id))
     return
 end
 

@@ -40,6 +40,13 @@ end
 # ======================================================================================== #
 #----- Trade Services -----#
 
+#=
+`VL_LimitOrderBook.submit_limit_order!` returns tuple of
+ - `new_open_order::Order` representing the order left in the book after matching. Is `nothing` if no order was inserted
+ - `order_match_lst::Vector{Order}` representing the matched orders if the order crosses the book.
+ - `left_to_trade::Sz` representing the size of the portion of the order which could neither inserted nor matched.
+=#
+
 function processLimitOrderSale(order::LimitOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
@@ -69,6 +76,21 @@ function processLimitOrderPurchase(order::LimitOrder)
     # returns Tuple with 3 elements - new_open_order, cross_match_lst, remaining_size
     return trade
 end
+
+#=
+Returns tuple `( ord_lst::Vector{Order}, left_to_trade::Sz )`
+where
+ - `ord_lst` is a list of _limit orders_ that _market order_ matched with
+ - `left_to_trade` is the remaining size of un-filled order ( `==0` if order is complete, `>0` if incomplete)
+
+ or
+
+ Returns tuple `( ord_lst::Vector{Order}, funds_leftover )`
+where
+ - `ord_lst` is a list of _limit orders_ that _market order_ matched with
+ - `funds_leftover` is the amount of remaining funds if not enough liquidity was available ( `==0` if order is complete, `>0` if incomplete)
+
+=#
 
 function processMarketOrderSale(order::MarketOrder)
     ticker_ob = order.ticker

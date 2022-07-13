@@ -112,11 +112,15 @@ function placeLimitOrder(obj)
         # check if sufficient funds available
         cash = Mapper.getCash(obj.acct_id)
         if cash ≥ obj.limit_price * obj.limit_size
+            # remove cash
+            updated_cash = cash - (obj.limit_price * obj.limit_size)
+            Mapper.update_cash(obj.acct_id, updated_cash)
             # create and send order to OMS layer for fulfillment
             # TODO: create and return unique obj.order_id = transaction_id
+            # TODO: add order_id to pendingorders
             order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
             processTradeBid(order) # TODO: integrate @asynch functionality
-            return order # return order confirmation
+            return order
         else
             throw(InsufficientFunds())            
         end
@@ -127,11 +131,19 @@ function placeLimitOrder(obj)
         ticker = obj.ticker
         shares_owned = get(holdings, Symbol("$ticker"), 0.0) 
         if shares_owned ≥ obj.limit_size
+            # remove shares
+            updated_shares = shares_owned - obj.limit_size
+            tick_key = (Symbol(ticker),)
+            share_val = (updated_shares,)
+            new_holdings = (; zip(tick_key, share_val)...)
+            updated_holdings = merge(holdings, new_holdings)
+            Mapper.update_holdings(obj.acct_id, updated_holdings)
             # create and send order to OMS layer for fulfillment
             # TODO: create and return unique obj.order_id = transaction_id
+            # TODO: add order_id to pendingorders
             order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
             processTradeAsk(order) # TODO: integrate @asynch functionality
-            return order # return order confirmation
+            return order
         else
             throw(InsufficientShares())            
         end
@@ -151,12 +163,17 @@ function placeMarketOrder(obj)
             # check if sufficient funds available
             cash = Mapper.getCash(obj.acct_id)
             best_ask = (getBidAsk(obj.ticker))[2]
-            if cash ≥ best_ask * obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
+            estimated_price = best_ask * obj.fill_amount
+            if cash ≥ estimated_price # TODO: Test the functionality here for robustness, asynch & liquidity could break this
+                # remove cash
+                updated_cash = cash - (estimated_price)
+                Mapper.update_cash(obj.acct_id, updated_cash)
                 # create and send order to OMS layer for fulfillment
                 # TODO: create and return unique obj.order_id = transaction_id
+                # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
-                processTradeBuy(order) # TODO: integrate @asynch functionality
-                return order # return order confirmation
+                processTradeBuy(order, price_adjustment = estimated_price) # TODO: integrate @asynch functionality
+                return order
             else
                 throw(InsufficientFunds())            
             end
@@ -167,11 +184,19 @@ function placeMarketOrder(obj)
             ticker = obj.ticker
             shares_owned = get(holdings, Symbol("$ticker"), 0.0)
             if shares_owned > 0.0
+                # remove shares
+                updated_shares = shares_owned - obj.fill_amount
+                tick_key = (Symbol(ticker),)
+                share_val = (updated_shares,)
+                new_holdings = (; zip(tick_key, share_val)...)
+                updated_holdings = merge(holdings, new_holdings)
+                Mapper.update_holdings(obj.acct_id, updated_holdings)
                 # create and send order to OMS layer for fulfillment
                 # TODO: create and return unique obj.order_id = transaction_id
+                # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
                 processTradeSell(order) # TODO: integrate @asynch functionality
-                return order # return order confirmation
+                return order
             else
                 throw(InsufficientShares())            
             end
@@ -182,11 +207,15 @@ function placeMarketOrder(obj)
             # check if sufficient funds available
             cash = Mapper.getCash(obj.acct_id)
             if cash ≥ obj.fill_amount
+                # remove cash
+                updated_cash = cash - (obj.fill_amount)
+                Mapper.update_cash(obj.acct_id, updated_cash)
                 # create and send order to OMS layer for fulfillment
                 # TODO: create and return unique obj.order_id = transaction_id
+                # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
                 processTradeBuy(order) # TODO: integrate @asynch functionality
-                return order # return order confirmation
+                return order
             else
                 throw(InsufficientFunds())            
             end
@@ -197,12 +226,22 @@ function placeMarketOrder(obj)
             ticker = obj.ticker
             best_ask = (getBidAsk(obj.ticker))[2]
             shares_owned = get(holdings, Symbol("$ticker"), 0.0)
-            if shares_owned * best_ask > obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
+            current_share_value = shares_owned * best_ask
+            if current_share_value > obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
+                # remove shares
+                estimated_shares = (obj.fill_amount / current_share_value) * shares_owned 
+                updated_shares = shares_owned - estimated_shares
+                tick_key = (Symbol(ticker),)
+                share_val = (updated_shares,)
+                new_holdings = (; zip(tick_key, share_val)...)
+                updated_holdings = merge(holdings, new_holdings)
+                Mapper.update_holdings(obj.acct_id, updated_holdings)
                 # create and send order to OMS layer for fulfillment
                 # TODO: create and return unique obj.order_id = transaction_id
+                # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
-                processTradeSell(order) # TODO: integrate @asynch functionality
-                return order # return order confirmation
+                processTradeSell(order, share_adjustment = estimated_shares) # TODO: integrate @asynch functionality
+                return order
             else
                 throw(InsufficientShares())            
             end
@@ -249,32 +288,120 @@ end
 # ======================================================================================== #
 #----- Trade Services -----#
 
+struct PlacementFailure <: Exception end
+struct OrderInsertionError <: Exception end
+
 function processTradeBid(order::LimitOrder)
     trade = OMS.processLimitOrderPurchase(order)
-    @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-    # TODO: incorporate complete trade functionality below
-    # if trade[1] == nothing
-    #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-    #     # TODO: update portfolio accordingly           
-    # end
+    new_open_order = trade[1]
+    cross_match_lst = trade[2]
+    remaining_size = trade[3]
+    # @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+
+    # TODO: incorporate pendingorders, completedorders updating
+
+    if remaining_size !== 0
+        throw(OrderInsertionError("order could neither be inserted nor matched"))
+    elseif new_open_order !== nothing && isempty(cross_match_lst) == true
+        @info "Your order has been received and routed to the Exchange."
+        return
+    elseif new_open_order === nothing
+        # update portfolio holdings{tickers, shares} of buyer
+        holdings = Mapper.getHoldings(order.acct_id)
+        ticker = order.ticker
+        shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+        new_shares = order.limit_size + shares_owned
+        tick_key = (Symbol(ticker),)
+        share_val = (new_shares,)
+        new_holdings = (; zip(tick_key, share_val)...)
+        updated_holdings = merge(holdings, new_holdings)
+        Mapper.update_holdings(order.acct_id, updated_holdings)
+        # TODO: remove from pendingorders and add to completedorders
+
+        # update portfolio cash of matched seller(s)
+        for i in 1:length(cross_match_lst)
+            matched_order = cross_match_lst[i]
+            earnings = matched_order.size * order.limit_price # crossed order clears at bid price
+            cash = Mapper.getCash(matched_order.acctid)
+            updated_cash = earnings + cash
+            Mapper.update_cash(matched_order.acctid, updated_cash)
+            # TODO: remove from pendingorders and add to completedorders
+            # order.orderid
+        end
+
+        @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order was crossed and your account has been updated."
+        return
+    elseif new_open_order !== nothing && isempty(cross_match_lst) == false
+        @info "Trade partially fulfilled at $(Dates.now(Dates.UTC)). Your order was partially crossed and your account has been updated."
+        # TODO: implement functionality for this
+        throw(PlacementFailure("partially crossed limit orders not supported at this time"))
+    else
+        throw(PlacementFailure())
+    end
 
     # return
 end
 
 function processTradeAsk(order::LimitOrder)
     trade = OMS.processLimitOrderSale(order)
-    @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-    # TODO: incorporate complete trade functionality below
-    # if trade[1] == nothing
-    #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-    #     # TODO: update portfolio accordingly           
-    # end
+    new_open_order = trade[1]
+    cross_match_lst = trade[2]
+    remaining_size = trade[3]
+    # @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+
+    # TODO: incorporate pendingorders, completedorders updating
+
+    if remaining_size !== 0
+        throw(OrderInsertionError("order could neither be inserted nor matched"))
+    elseif new_open_order !== nothing && isempty(cross_match_lst) == true
+        @info "Your order has been received and routed to the Exchange."
+        return
+    elseif new_open_order === nothing
+        # update portfolio cash of seller
+        earnings = order.limit_size * order.limit_price
+
+
+        # holdings = Mapper.getHoldings(order.acct_id)
+        # ticker = order.ticker
+        # shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+        # new_shares = order.limit_size + shares_owned
+        # tick_key = (Symbol(ticker),)
+        # share_val = (new_shares,)
+        # new_holdings = (; zip(tick_key, share_val)...)
+        # updated_holdings = merge(holdings, new_holdings)
+        # Mapper.update_holdings(order.acct_id, updated_holdings)
+        # TODO: remove from pendingorders and add to completedorders
+
+        # update portfolio holdings{tickers, shares} of matched seller(s)
+        # for i in 1:length(cross_match_lst)
+        #     matched_order = cross_match_lst[i]
+        #     earnings = matched_order.size * matched_order.price
+        #     cash = Mapper.getCash(matched_order.acctid)
+        #     updated_cash = earnings + cash
+        #     Mapper.update_cash(matched_order.acctid, updated_cash)
+        #     # TODO: remove from pendingorders and add to completedorders
+        #     # order.orderid
+        # end
+
+        @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order was crossed and your account has been updated."
+        return
+    elseif new_open_order !== nothing && isempty(cross_match_lst) == false
+        @info "Trade partially fulfilled at $(Dates.now(Dates.UTC)). Your order was partially crossed and your account has been updated."
+        # TODO: implement functionality for this
+        throw(PlacementFailure("partially crossed limit orders not supported at this time"))
+    else
+        throw(PlacementFailure())
+    end
 
     # return
 end
 
-function processTradeBuy(order::MarketOrder)
+function processTradeBuy(order::MarketOrder; price_adjustment = 0.0)
     trade = OMS.processMarketOrderPurchase(order)
+    # returns Tuple with 2 elements - ord_lst (list of limit orders that the m_order matched with), left_to_trade (remaining size of un-filled order)
+    # OR 
+    # returns Tuple with 2 elements - ord_lst, funds_leftover (the amount of remaining funds if not enough liquidity was available)
+
     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
     # TODO: incorporate complete trade functionality below
     # if trade[1] == nothing
@@ -285,7 +412,7 @@ function processTradeBuy(order::MarketOrder)
     # return
 end
 
-function processTradeSell(order::MarketOrder)
+function processTradeSell(order::MarketOrder; share_adjustment = 0.0)
     trade = OMS.processMarketOrderSale(order)
     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
     # TODO: incorporate complete trade functionality below
@@ -298,6 +425,8 @@ function processTradeSell(order::MarketOrder)
 end
 
 function cancelTrade(order::CancelOrder)
+     # returns `popped order` (ord::Union{Order{Sz,Px,Oid,Aid},Nothing}), is nothing if no order found
+
     # navigate order to correct location
     if order.order_side == "SELL_ORDER"
         canceled_trade = OMS.cancelLimitOrderSale(order)
