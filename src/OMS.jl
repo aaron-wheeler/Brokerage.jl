@@ -100,7 +100,6 @@ function cancelLimitOrderSale(order::CancelOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
     canceled_order = VL_LimitOrderBook.cancel_order!(eval(ob_expr),order.order_id,SELL_ORDER,order.limit_price)
-    # returns `popped order` (ord::Union{Order{Sz,Px,Oid,Aid},Nothing}), is nothing if no order found
     return canceled_order
 end
 
@@ -108,7 +107,6 @@ function cancelLimitOrderPurchase(order::CancelOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
     canceled_order = VL_LimitOrderBook.cancel_order!(eval(ob_expr),order.order_id,BUY_ORDER,order.limit_price)
-    # returns `popped order` (ord::Union{Order{Sz,Px,Oid,Aid},Nothing}), is nothing if no order found
     return canceled_order
 end
 

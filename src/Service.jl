@@ -95,8 +95,6 @@ end
 # ======================================================================================== #
 #----- Order Services -----#
 
-# TODO: make a @cacheable generalized function for creating orders, which is then called by placeOrder fns and deleted
-
 struct InsufficientFunds <: Exception end
 struct InsufficientShares <: Exception end
 
@@ -104,8 +102,8 @@ function placeLimitOrder(obj)
     @assert haskey(obj, :ticker) && !isempty(obj.ticker)
     @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: make this service-managed
     @assert haskey(obj, :order_side) && !isempty(obj.order_side)
-    @assert haskey(obj, :limit_price) && !isempty(obj.limit_price) && obj.limit_price > zero(obj.limit_price) 
-    @assert haskey(obj, :limit_size) && !isempty(obj.limit_size) && obj.limit_size > zero(obj.limit_size) 
+    @assert haskey(obj, :limit_price) && obj.limit_price > zero(obj.limit_price) 
+    @assert haskey(obj, :limit_size) && obj.limit_size > zero(obj.limit_size) 
     @assert haskey(obj, :acct_id) && !isempty(obj.acct_id)
 
     if obj.order_side == "BUY_ORDER"
@@ -154,7 +152,7 @@ function placeMarketOrder(obj)
     @assert haskey(obj, :ticker) && !isempty(obj.ticker)
     @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: make this service-managed
     @assert haskey(obj, :order_side) && !isempty(obj.order_side)
-    @assert haskey(obj, :fill_amount) && !isempty(obj.fill_amount) && obj.fill_amount > zero(obj.fill_amount) 
+    @assert haskey(obj, :fill_amount) && obj.fill_amount > zero(obj.fill_amount) 
     @assert haskey(obj, :acct_id) && !isempty(obj.acct_id)
 
     if obj.byfunds == false
@@ -251,7 +249,7 @@ end
 
 function placeCancelOrder(obj)
     @assert haskey(obj, :ticker) && !isempty(obj.ticker)
-    @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: Check if exists in LOB and portfolio.id -> pendingorders
+    @assert haskey(obj, :order_id) && !isempty(obj.order_id)
     @assert haskey(obj, :order_side) && !isempty(obj.order_side)
     @assert haskey(obj, :limit_price) && !isempty(obj.limit_price)
     @assert haskey(obj, :acct_id) && !isempty(obj.acct_id)
@@ -291,15 +289,13 @@ end
 struct PlacementFailure <: Exception end
 struct OrderInsertionError <: Exception end
 struct LiquidityError <: Exception end
+struct OrderNotFound <: Exception end
 
 function processTradeBid(order::LimitOrder)
     trade = OMS.processLimitOrderPurchase(order)
     new_open_order = trade[1]
     cross_match_lst = trade[2]
     remaining_size = trade[3]
-    # @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-
-    # TODO: incorporate pendingorders, completedorders updating
 
     if remaining_size !== 0
         # TODO: delete from pendingorders and apply refund
@@ -328,8 +324,7 @@ function processTradeBid(order::LimitOrder)
             cash = Mapper.getCash(matched_order.acctid)
             updated_cash = earnings + cash
             Mapper.update_cash(matched_order.acctid, updated_cash)
-            # TODO: remove from pendingorders and add to completedorders
-            # matched_oorder.orderid
+            # TODO: remove from matched_order.orderid pendingorders and into completedorders
         end
 
         @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order was crossed and your account has been updated."
@@ -345,8 +340,6 @@ function processTradeBid(order::LimitOrder)
         # TODO: return the matched order(s) back to the LOB
         throw(PlacementFailure())
     end
-
-    # return
 end
 
 function processTradeAsk(order::LimitOrder)
@@ -354,10 +347,7 @@ function processTradeAsk(order::LimitOrder)
     new_open_order = trade[1]
     cross_match_lst = trade[2]
     remaining_size = trade[3]
-    # @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-
-    # TODO: incorporate pendingorders, completedorders updating
-
+    
     if remaining_size !== 0
         throw(OrderInsertionError("order could neither be inserted nor matched"))
     elseif new_open_order !== nothing && isempty(cross_match_lst) == true
@@ -383,8 +373,7 @@ function processTradeAsk(order::LimitOrder)
             new_holdings = (; zip(tick_key, share_val)...)
             updated_holdings = merge(holdings, new_holdings)
             Mapper.update_holdings(matched_order.acctid, updated_holdings)
-        #     # TODO: remove from pendingorders and add to completedorders
-        #     # matched_oorder.orderid
+            # TODO: remove from matched_order.orderid pendingorders and into completedorders
         end
 
         @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order was crossed and your account has been updated."
@@ -396,8 +385,6 @@ function processTradeAsk(order::LimitOrder)
     else
         throw(PlacementFailure())
     end
-
-    # return
 end
 
 function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
@@ -442,8 +429,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
                 cash = Mapper.getCash(matched_order.acctid)
                 updated_cash = earnings + cash
                 Mapper.update_cash(matched_order.acctid, updated_cash)
-                # TODO: remove from pendingorders and add to completedorders
-                # matched_order.orderid
+                # TODO: remove from matched_order.orderid pendingorders and into completedorders
             end
 
             # send confirmation message
@@ -476,6 +462,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
         new_holdings = (; zip(tick_key, share_val)...)
         updated_holdings = merge(holdings, new_holdings)
         Mapper.update_holdings(order.acct_id, updated_holdings)
+        # TODO: remove from pendingorders and add to completedorders
 
         # update portfolio cash of matched seller(s)
         for i in 1:length(order_match_lst)
@@ -484,8 +471,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
             cash = Mapper.getCash(matched_order.acctid)
             updated_cash = earnings + cash
             Mapper.update_cash(matched_order.acctid, updated_cash)
-            # TODO: remove from pendingorders and add to completedorders
-            # matched_order.orderid
+            # TODO: remove from matched_order.orderid pendingorders and into completedorders
         end
 
         # confirmation process
@@ -533,8 +519,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
             new_holdings = (; zip(tick_key, share_val)...)
             updated_holdings = merge(holdings, new_holdings)
             Mapper.update_holdings(matched_order.acctid, updated_holdings)
-        #     # TODO: remove from pendingorders and add to completedorders
-        #     # matched_oorder.orderid
+            # TODO: remove from matched_order.orderid pendingorders and into completedorders
         end
 
         # confirmation process
@@ -601,8 +586,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
                 new_holdings = (; zip(tick_key, share_val)...)
                 updated_holdings = merge(holdings, new_holdings)
                 Mapper.update_holdings(matched_order.acctid, updated_holdings)
-                # TODO: remove from pendingorders and add to completedorders
-                # matched_order.orderid
+                # TODO: remove from matched_order.orderid pendingorders and into completedorders
             end
 
             # send confirmation message
@@ -618,28 +602,46 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
 end
 
 function cancelTrade(order::CancelOrder)
-     # returns `popped order` (ord::Union{Order{Sz,Px,Oid,Aid},Nothing}), is nothing if no order found
-
     # navigate order to correct location
     if order.order_side == "SELL_ORDER"
         canceled_trade = OMS.cancelLimitOrderSale(order)
-        @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        # TODO: incorporate complete trade functionality below
-        # if trade[1] == nothing
-        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        #     # TODO: update portfolio accordingly           
-        # end
-    elseif order.order_side == "BUY_ORDER"
+        if canceled_trade !== nothing
+            # refund shares
+            holdings = Mapper.getHoldings(order.acct_id)
+            ticker = order.ticker
+            shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+            updated_shares = shares_owned + canceled_trade.size
+            tick_key = (Symbol(ticker),)
+            share_val = (updated_shares,)
+            new_holdings = (; zip(tick_key, share_val)...)
+            updated_holdings = merge(holdings, new_holdings)
+            Mapper.update_holdings(order.acct_id, updated_holdings)
+            # TODO: delete canceled_trade.orderid from pendingorders
+
+            # send confirmation
+            @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+            return
+        else
+            throw(OrderNotFound())
+        end
+    else 
+        # order.order_side == "BUY_ORDER"
         canceled_trade = OMS.cancelLimitOrderPurchase(order)
-        @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        # TODO: incorporate complete trade functionality below
-        # if trade[1] == nothing
-        #     @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
-        #     # TODO: update portfolio accordingly           
-        # end
+        if canceled_trade !== nothing
+            # refund cash
+            cash = Mapper.getCash(order.acct_id)
+            refund = canceled_trade.size * canceled_trade.price
+            updated_cash = cash + refund
+            Mapper.update_cash(order.acct_id, updated_cash)
+            # TODO: delete canceled_trade.orderid from pendingorders
+
+            # send confirmation
+            @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
+            return
+        else
+            throw(OrderNotFound())            
+        end
     end
-    
-    # return
 end
 
 # TODO: Other info messages (examples below)
