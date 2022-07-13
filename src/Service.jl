@@ -87,8 +87,7 @@ function loginUser(user)
         persistedUser.password = ""
         return persistedUser
     else
-        println("persistedUser Login Error: User not recognized")
-        throw(Auth.Unauthenticated())
+        throw(Auth.Unauthenticated("persistedUser login not recognized"))
     end
 end
 
@@ -320,11 +319,16 @@ function processTradeBid(order::LimitOrder)
         # update portfolio cash of matched seller(s)
         for i in 1:length(cross_match_lst)
             matched_order = cross_match_lst[i]
-            earnings = matched_order.size * order.limit_price # crossed order clears at bid price
-            cash = Mapper.getCash(matched_order.acctid)
-            updated_cash = earnings + cash
-            Mapper.update_cash(matched_order.acctid, updated_cash)
-            # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            # check if order is native to Brokerage (e.g., not from a market maker)
+            if matched_order.acctid > Mapper.MM_COUNTER
+                earnings = matched_order.size * order.limit_price # crossed order clears at bid price
+                cash = Mapper.getCash(matched_order.acctid)
+                updated_cash = earnings + cash
+                Mapper.update_cash(matched_order.acctid, updated_cash)
+                # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            else
+                continue
+            end
         end
 
         @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order was crossed and your account has been updated."
@@ -364,16 +368,21 @@ function processTradeAsk(order::LimitOrder)
         # update portfolio holdings{tickers, shares} of matched buyer(s)
         for i in 1:length(cross_match_lst)
             matched_order = cross_match_lst[i]
-            holdings = Mapper.getHoldings(matched_order.acctid)
-            ticker = order.ticker
-            shares_owned = get(holdings, Symbol("$ticker"), 0.0)
-            new_shares = matched_order.size + shares_owned
-            tick_key = (Symbol(ticker),)
-            share_val = (new_shares,)
-            new_holdings = (; zip(tick_key, share_val)...)
-            updated_holdings = merge(holdings, new_holdings)
-            Mapper.update_holdings(matched_order.acctid, updated_holdings)
-            # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            # check if order is native to Brokerage (e.g., not from a market maker)
+            if matched_order.acctid > Mapper.MM_COUNTER
+                holdings = Mapper.getHoldings(matched_order.acctid)
+                ticker = order.ticker
+                shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+                new_shares = matched_order.size + shares_owned
+                tick_key = (Symbol(ticker),)
+                share_val = (new_shares,)
+                new_holdings = (; zip(tick_key, share_val)...)
+                updated_holdings = merge(holdings, new_holdings)
+                Mapper.update_holdings(matched_order.acctid, updated_holdings)
+                # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            else
+                continue
+            end
         end
 
         @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order was crossed and your account has been updated."
@@ -425,11 +434,16 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
             # update portfolio cash of matched seller(s)
             for i in 1:length(order_match_lst)
                 matched_order = order_match_lst[i]
-                earnings = matched_order.size * matched_order.price
-                cash = Mapper.getCash(matched_order.acctid)
-                updated_cash = earnings + cash
-                Mapper.update_cash(matched_order.acctid, updated_cash)
-                # TODO: remove from matched_order.orderid pendingorders and into completedorders
+                # check if order is native to Brokerage (e.g., not from a market maker)
+                if matched_order.acctid > Mapper.MM_COUNTER
+                    earnings = matched_order.size * matched_order.price
+                    cash = Mapper.getCash(matched_order.acctid)
+                    updated_cash = earnings + cash
+                    Mapper.update_cash(matched_order.acctid, updated_cash)
+                    # TODO: remove from matched_order.orderid pendingorders and into completedorders
+                else
+                    continue
+                end
             end
 
             # send confirmation message
@@ -467,11 +481,16 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
         # update portfolio cash of matched seller(s)
         for i in 1:length(order_match_lst)
             matched_order = order_match_lst[i]
-            earnings = matched_order.size * matched_order.price
-            cash = Mapper.getCash(matched_order.acctid)
-            updated_cash = earnings + cash
-            Mapper.update_cash(matched_order.acctid, updated_cash)
-            # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            # check if order is native to Brokerage (e.g., not from a market maker)
+            if matched_order.acctid > Mapper.MM_COUNTER
+                earnings = matched_order.size * matched_order.price
+                cash = Mapper.getCash(matched_order.acctid)
+                updated_cash = earnings + cash
+                Mapper.update_cash(matched_order.acctid, updated_cash)
+                # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            else
+                continue
+            end
         end
 
         # confirmation process
@@ -510,16 +529,21 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
         # update portfolio holdings{tickers, shares} of matched buyer(s)
         for i in 1:length(order_match_lst)
             matched_order = order_match_lst[i]
-            holdings = Mapper.getHoldings(matched_order.acctid)
-            ticker = order.ticker
-            shares_owned = get(holdings, Symbol("$ticker"), 0.0)
-            new_shares = matched_order.size + shares_owned
-            tick_key = (Symbol(ticker),)
-            share_val = (new_shares,)
-            new_holdings = (; zip(tick_key, share_val)...)
-            updated_holdings = merge(holdings, new_holdings)
-            Mapper.update_holdings(matched_order.acctid, updated_holdings)
-            # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            # check if order is native to Brokerage (e.g., not from a market maker)
+            if matched_order.acctid > Mapper.MM_COUNTER
+                holdings = Mapper.getHoldings(matched_order.acctid)
+                ticker = order.ticker
+                shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+                new_shares = matched_order.size + shares_owned
+                tick_key = (Symbol(ticker),)
+                share_val = (new_shares,)
+                new_holdings = (; zip(tick_key, share_val)...)
+                updated_holdings = merge(holdings, new_holdings)
+                Mapper.update_holdings(matched_order.acctid, updated_holdings)
+                # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            else
+                continue
+            end
         end
 
         # confirmation process
@@ -577,16 +601,21 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
             # update portfolio holdings{tickers, shares} of matched buyer(s)
             for i in 1:length(order_match_lst)
                 matched_order = order_match_lst[i]
-                holdings = Mapper.getHoldings(matched_order.acctid)
-                ticker = order.ticker
-                shares_owned = get(holdings, Symbol("$ticker"), 0.0)
-                new_shares = matched_order.size + shares_owned
-                tick_key = (Symbol(ticker),)
-                share_val = (new_shares,)
-                new_holdings = (; zip(tick_key, share_val)...)
-                updated_holdings = merge(holdings, new_holdings)
-                Mapper.update_holdings(matched_order.acctid, updated_holdings)
-                # TODO: remove from matched_order.orderid pendingorders and into completedorders
+                # check if order is native to Brokerage (e.g., not from a market maker)
+                if matched_order.acctid > Mapper.MM_COUNTER
+                    holdings = Mapper.getHoldings(matched_order.acctid)
+                    ticker = order.ticker
+                    shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+                    new_shares = matched_order.size + shares_owned
+                    tick_key = (Symbol(ticker),)
+                    share_val = (new_shares,)
+                    new_holdings = (; zip(tick_key, share_val)...)
+                    updated_holdings = merge(holdings, new_holdings)
+                    Mapper.update_holdings(matched_order.acctid, updated_holdings)
+                    # TODO: remove from matched_order.orderid pendingorders and into completedorders
+                else
+                    continue
+                end
             end
 
             # send confirmation message
@@ -605,7 +634,7 @@ function cancelTrade(order::CancelOrder)
     # navigate order to correct location
     if order.order_side == "SELL_ORDER"
         canceled_trade = OMS.cancelLimitOrderSale(order)
-        if canceled_trade !== nothing
+        if canceled_trade !== nothing && canceled_trade.acctid > Mapper.MM_COUNTER
             # refund shares
             holdings = Mapper.getHoldings(order.acct_id)
             ticker = order.ticker
@@ -621,13 +650,15 @@ function cancelTrade(order::CancelOrder)
             # send confirmation
             @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
-        else
+        elseif canceled_trade.acctid > Mapper.MM_COUNTER
             throw(OrderNotFound())
+        else
+            throw(OrderNotFound("unauthorized attempt to canceled non-native order"))
         end
     else 
         # order.order_side == "BUY_ORDER"
         canceled_trade = OMS.cancelLimitOrderPurchase(order)
-        if canceled_trade !== nothing
+        if canceled_trade !== nothing && canceled_trade.acctid > Mapper.MM_COUNTER
             # refund cash
             cash = Mapper.getCash(order.acct_id)
             refund = canceled_trade.size * canceled_trade.price
@@ -638,8 +669,10 @@ function cancelTrade(order::CancelOrder)
             # send confirmation
             @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
+        elseif canceled_trade.acctid > Mapper.MM_COUNTER
+            throw(OrderNotFound())
         else
-            throw(OrderNotFound())            
+            throw(OrderNotFound("unauthorized attempt to canceled non-native order"))
         end
     end
 end

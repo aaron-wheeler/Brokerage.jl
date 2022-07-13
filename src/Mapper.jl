@@ -6,7 +6,8 @@ using SQLite, DBInterface, Strapping, Tables
 
 # pod is a specific key to a pool of SQLite database connections
 const DB_POOL = Ref{ConnectionPools.Pod{ConnectionPools.Connection{SQLite.DB}}}()
-const COUNTER = Ref{Int64}(0)
+const PORTFOLIO_COUNTER = Ref{Int64}(0)
+const MM_COUNTER = 30 # reserved IDs for non-native (e.g., market maker) orders
 
 # define the normalized relational database where we store holdings Vector as seperate tables
 # we use these database connections to store the objects we defined in Model.jl
@@ -15,6 +16,7 @@ const COUNTER = Ref{Int64}(0)
 function init(dbfile)
     new = () -> SQLite.DB(dbfile)
     DB_POOL[] = ConnectionPools.Pod(SQLite.DB, Threads.nthreads(), 60, 1000, new)
+    PORTFOLIO_COUNTER[] += MM_COUNTER
     if !isfile(dbfile)
         db = SQLite.DB(dbfile)
         # TODO: Make portfolio id UNIQUE
@@ -90,7 +92,7 @@ end
 function create!(portfolio::Portfolio)
     user = Contexts.getuser()
     portfolio.userid = user.id
-    portfolio.id = COUNTER[] += 1
+    portfolio.id = PORTFOLIO_COUNTER[] += 1
     execute("""
         INSERT INTO portfolio (id, userid, name, cash, timespicked) VALUES(?, ?, ?, ?, ?)
     """, (portfolio.id, portfolio.userid, portfolio.name, portfolio.cash, portfolio.timespicked))
@@ -157,7 +159,6 @@ function update(portfolio)
     return
 end
 
-# TODO: remove user dependency
 function update_holdings(id, holdings)
     user = Contexts.getuser()
     execute("""

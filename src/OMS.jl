@@ -10,8 +10,11 @@ using Base.Iterators: zip,cycle,take,filter
 
 # function init()
 # Create (Deterministic) Limit Order Generator
-MyUOBType = UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer} # define types for Order Size, Price, Transcation ID, Account ID, Order Creation Time, IP Address, Port
-MyLOBType = OrderBook{Int64, Float64, Int64, Int64} # define types for Order Size, Price, Order IDs, Account IDs
+
+# define types for Order Size, Price, Transcation ID, Account ID, Order Creation Time, IP Address, Port
+MyUOBType = UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer}
+# define types for Order Size, Price, Order IDs, Account IDs
+MyLOBType = OrderBook{Int64, Float64, Int64, Int64}
 ob1 = MyLOBType() # Initialize empty order book
 uob1 = MyUOBType() # Initialize unmatched book process
 
@@ -21,16 +24,18 @@ side_iter = ( s > 0 ? SELL_ORDER : BUY_ORDER for s in sign_iter )
 spread_iter = cycle([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]*1e-2)
 price_iter = ( Float32(99.0 + sgn*δ) for (δ,sgn) in zip(spread_iter,sign_iter) )
 size_iter = cycle([10, 11, 20, 21, 30, 31, 40, 41, 50, 51])
+init_acctid = 0
 
 # zip them all together
 lmt_order_info_iter = zip(orderid_iter,price_iter,size_iter,side_iter)
 
+# generate orders from the iterator
 order_info_lst = take(lmt_order_info_iter,6)
 
 # Add a bunch of orders
 @info "Connecting to Exchange and initializing Limit Order Book..."
 for (orderid, price, size, side) in order_info_lst
-    submit_limit_order!(ob1,uob1,orderid,side,price,size,10101)
+    submit_limit_order!(ob1,uob1,orderid,side,price,size,init_acctid)
     print(orderid, ' ',side,' ',price,'\n')
 end
 @info "Exchange Connection successful. Limit Order Book initialization sequence complete."
