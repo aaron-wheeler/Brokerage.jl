@@ -522,7 +522,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
 
         # update portfolio cash of seller
         cash = Mapper.getCash(order.acct_id)
-        updated_cash = cash_paid + cash
+        updated_cash = cash + earnings
         Mapper.update_cash(order.acct_id, updated_cash)
         # TODO: remove from pendingorders and add to completedorders
 
@@ -650,10 +650,10 @@ function cancelTrade(order::CancelOrder)
             # send confirmation
             @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
-        elseif canceled_trade.acctid > Mapper.MM_COUNTER
-            throw(OrderNotFound())
-        else
+        elseif canceled_trade !== nothing && canceled_trade.acctid ≤ Mapper.MM_COUNTER
             throw(OrderNotFound("unauthorized attempt to canceled non-native order"))
+        else
+            throw(OrderNotFound())
         end
     else 
         # order.order_side == "BUY_ORDER"
@@ -669,10 +669,10 @@ function cancelTrade(order::CancelOrder)
             # send confirmation
             @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
-        elseif canceled_trade.acctid > Mapper.MM_COUNTER
-            throw(OrderNotFound())
-        else
+        elseif canceled_trade !== nothing && canceled_trade.acctid ≤ Mapper.MM_COUNTER
             throw(OrderNotFound("unauthorized attempt to canceled non-native order"))
+        else
+            throw(OrderNotFound())
         end
     end
 end
