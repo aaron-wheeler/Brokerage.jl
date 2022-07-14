@@ -14,16 +14,15 @@ user = Client.loginUser("aaron", "password123")
 por1 = Client.createPortfolio("Trader 1", 10500.0, Dict(1 => 10.0, 2 => 12.5))
 holdings1 = Client.getHoldings(por1.id)
 cash1 = Client.getCash(por1.id)
-# por1 = Client.createPortfolio("Trader 1", 10500.0, [1, 2], [10.0, 12.5])
 
 ## Order testing
-ord1 = Client.placeLimitOrder(1,1287,"SELL_ORDER",99.0,7,por1.id)
+ord1 = Client.placeLimitOrder(1,12,"SELL_ORDER",99.0,7,por1.id)
 holdings1 = Client.getHoldings(por1.id)
 @test holdings1[:1] == 3
 bid, ask = Client.getBidAsk(1)
 @test ask == 99.0
 # crossed order
-ord2 = Client.placeLimitOrder(1,1283,"BUY_ORDER",100.0,7,por1.id)
+ord2 = Client.placeLimitOrder(1,87,"BUY_ORDER",100.0,7,por1.id)
 @test Client.getBidAsk(1)[2] != 99.0
 holdings1 = Client.getHoldings(por1.id)
 @test holdings1[:1] == 10
@@ -31,10 +30,11 @@ holdings1 = Client.getHoldings(por1.id)
 # # OMS.ob1 # changed order book can only be seen on server side terminal ** (haven't incorporated qoute service yet)
 
 ## Trade update testing
+# Trade ex. 1: limit order sell - market order buy
 ord3 = Client.placeLimitOrder(1,11,"SELL_ORDER",99.0,7,por1.id)
 # new trader
 por2 = Client.createPortfolio("Trader 2", 9000.0, Dict(1 => 15.0, 2 => 5.0))
-ord4 = Client.placeMarketOrder(1,1281,"BUY_ORDER",5,por2.id)
+ord4 = Client.placeMarketOrder(1,81,"BUY_ORDER",5,por2.id)
 holdings2 = Client.getHoldings(por2.id)
 @test holdings2[:1] == 20
 cash1 = Client.getCash(por1.id)
@@ -42,20 +42,49 @@ cash1 = Client.getCash(por1.id)
 cash2 = Client.getCash(por2.id)
 @test cash2 == 9000.0 - (5 * 99.0)
 
-# ord3 = Client.placeMarketOrder(1,1211,"SELL_ORDER",7,por1.id)
-# ord4 = Client.placeMarketOrder(1,1281,"BUY_ORDER",7,por1.id)
+# Trade ex. 2: cancel rest of unmatched limit order (trader 1)
+@test Client.getHoldings(por1.id)[:1] == 3
+Client.placeCancelOrder(1,11,"SELL_ORDER",99.0,por1.id)
+@test Client.getHoldings(por1.id)[:1] == 5
+@test Client.getBidAsk(1)[2] != 99.0
 
-# ord5 = Client.placeMarketOrder(1,1211,"BUY_ORDER",5.0,por1.id,byfunds = true)
-# ord6 = Client.placeMarketOrder(1,1281,"BUY_ORDER",100.0,por1.id,byfunds = true)
+# Trade ex. 3: limit order buy - market order sell
+ord5 = Client.placeLimitOrder(1,83,"BUY_ORDER",98.99,10,por1.id)
+ord6 = Client.placeMarketOrder(1,28,"SELL_ORDER",10,por2.id)
+@test Client.getHoldings(por1.id)[:1] == 15
+@test Client.getHoldings(por2.id)[:1] == 10
+@test Client.getCash(por1.id) == 10500.0 + (5 * 99.0) - (10 * 98.99)
+@test Client.getCash(por2.id) == 9000.0 - (5 * 99.0) + (10 * 98.99)
 
-# ord7 = Client.placeLimitOrder(1,1280,"BUY_ORDER",98.0,3,por1.id)
-# Client.placeCancelOrder(1,1280,"BUY_ORDER",98.0,por1.id)
+# Trade ex. 4: market orders by funds
+ord7 = Client.placeLimitOrder(1,54,"SELL_ORDER",99.0,3,por1.id)
+ord8 = Client.placeLimitOrder(1,55,"BUY_ORDER",98.99,4,por2.id)
+funds1 = 98.99 * 3 # for trader 1 to partially clear trader 2's buy LO
+funds2 = 99.0 * 3 # for trader 2 to clear trader 1's sell LO
+ord9 = Client.placeMarketOrder(1,32,"SELL_ORDER",funds1,por1.id,byfunds = true)
+@test Client.getHoldings(por1.id)[:1] == 15 - 3 - 3
+@test Client.getHoldings(por2.id)[:1] == 10 + 3
+@test Client.getCash(por1.id) == 10500.0 + (5 * 99.0) - (10 * 98.99) + funds1
+@test Client.getCash(por2.id) == 9000.0 - (5 * 99.0) + (10 * 98.99) - (4 * 98.99)
+ord10 = Client.placeMarketOrder(1,21,"BUY_ORDER",funds2,por2.id,byfunds = true)
+@test Client.getCash(por2.id) == 9000.0 - (5 * 99.0) + (10 * 98.99) - (4 * 98.99) - funds2
+@test Client.getCash(por1.id) == 10500.0 + (5 * 99.0) - (10 * 98.99) + funds1 + funds2
+@test Client.getHoldings(por2.id)[:1] == 10 + 3 + 3
+@test Client.getHoldings(por1.id)[:1] == 15 - 3 - 3
+
+# Trade ex. 5: cancel order consistency
+@test Client.getBidAsk(1)[1] == 98.99
+Client.placeCancelOrder(1,55,"BUY_ORDER",98.99,por2.id)
+@test Client.getCash(por2.id) == 9000.0 - (5 * 99.0) + (10 * 98.99) - (4 * 98.99) - funds2 + (1 * 98.99)
+@test Client.getBidAsk(1)[1] != 98.99
+# trader 1 order completed, test for exception
+# @test_throws Brokerage.Service.OrderNotFound Client.placeCancelOrder(1,54,"SELL_ORDER",99.0,por1.id) # error works but testing for it is tricky over HTTP
 
 ## Quote testing
-# bid, ask = Client.getBidAsk(1)
-# depth = Client.getBookDepth(1)
-# book_volume = Client.getBidAskVolume(1)
-# n_orders_book = Client.getBidAskOrders(1)
+bid, ask = Client.getBidAsk(1)
+depth = Client.getBookDepth(1)
+book_volume = Client.getBidAskVolume(1)
+n_orders_book = Client.getBidAskOrders(1)
 
 # @testset "Test 1" begin
 #     @test Client.pickRandomPortfolio() == por1
