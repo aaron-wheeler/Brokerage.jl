@@ -169,7 +169,7 @@ function placeMarketOrder(obj)
                 # TODO: create and return unique obj.order_id = transaction_id
                 # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
-                processTradeBuy(order, estimated_price = estimated_price) # TODO: integrate @asynch functionality
+                processTradeBuy(order; estimated_price = estimated_price) # TODO: integrate @asynch functionality
                 return order
             else
                 throw(InsufficientFunds())            
@@ -237,7 +237,7 @@ function placeMarketOrder(obj)
                 # TODO: create and return unique obj.order_id = transaction_id
                 # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
-                processTradeSell(order, estimated_shares = estimated_shares) # TODO: integrate @asynch functionality
+                processTradeSell(order; estimated_shares = estimated_shares) # TODO: integrate @asynch functionality
                 return order
             else
                 throw(InsufficientShares())            
@@ -402,7 +402,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
         trade = OMS.processMarketOrderPurchase(order)
         order_match_lst = trade[1]
         shares_leftover = trade[2]
-        cash = Mapper.getCash(order.acctid)
+        cash = Mapper.getCash(order.acct_id)
         cash_owed = 0.0
         for i in 1:length(order_match_lst)
             matched_order = order_match_lst[i]

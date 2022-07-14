@@ -174,7 +174,7 @@ function update_cash(id, cash)
     user = Contexts.getuser()
     execute("""
         UPDATE portfolio
-        SET cash = ?,
+        SET cash = ?
         WHERE id = ?
     """, (cash, id))
     return
