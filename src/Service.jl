@@ -262,6 +262,12 @@ end
 # ======================================================================================== #
 #----- Quote Services -----#
 
+function getMidPrice(ticker)
+    bid, ask = OMS.queryBidAsk(ticker)
+    mid_price = (ask + bid) / 2.0
+    return mid_price
+end
+
 function getBidAsk(ticker)
     top_book = OMS.queryBidAsk(ticker)
     return top_book

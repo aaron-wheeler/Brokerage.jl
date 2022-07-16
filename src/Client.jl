@@ -89,6 +89,11 @@ end
 # ======================================================================================== #
 #----- Quote Functionality -----#
 
+function getMidPrice(ticker)
+    resp = HTTP.get(string(SERVER[], "/quote_mid_price/$ticker"))
+    return JSON3.read(resp.body, Float64)
+end
+
 function getBidAsk(ticker) # returns tuple of best bid and ask prices in the order book
     resp = HTTP.get(string(SERVER[], "/quote_top_book/$ticker"))
     return JSON3.read(resp.body, Tuple{Float64, Float64}) # could also skip Tuple arg and just return as JSON3 Array

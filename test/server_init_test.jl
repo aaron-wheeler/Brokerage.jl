@@ -81,6 +81,7 @@ Client.placeCancelOrder(1,55,"BUY_ORDER",98.99,por2.id)
 # @test_throws Brokerage.Service.OrderNotFound Client.placeCancelOrder(1,54,"SELL_ORDER",99.0,por1.id) # error works but testing for it is tricky over HTTP
 
 ## Quote testing
+mid_price = Client.getMidPrice(1)
 bid, ask = Client.getBidAsk(1)
 depth = Client.getBookDepth(1)
 book_volume = Client.getBidAskVolume(1)

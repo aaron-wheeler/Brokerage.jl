@@ -53,6 +53,9 @@ HTTP.register!(ROUTER, "POST", "/c_order", placeCancelOrder)
 # ======================================================================================== #
 #----- QUOTE ROUTING -----#
 
+getMidPrice(req) = Service.getMidPrice(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
+HTTP.register!(ROUTER, "GET", "/quote_mid_price/*", getMidPrice)
+
 getBidAsk(req) = Service.getBidAsk(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
 HTTP.register!(ROUTER, "GET", "/quote_top_book/*", getBidAsk)
 
