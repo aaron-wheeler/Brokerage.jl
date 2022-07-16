@@ -87,6 +87,15 @@ depth = Client.getBookDepth(1)
 book_volume = Client.getBidAskVolume(1)
 n_orders_book = Client.getBidAskOrders(1)
 
+## Multi-asset testing
+ord11 = Client.placeMarketOrder(2,24,"SELL_ORDER",1,por1.id)
+ord12 = Client.placeMarketOrder(2,29,"BUY_ORDER",3,por1.id)
+
+## Fractional share testing
+# ord13 = Client.placeLimitOrder(1,87,"SELL_ORDER",99.0,1.7,por1.id) # TODO: fix OrderInsertionError
+ord14 = Client.placeMarketOrder(1,81,"BUY_ORDER",1.1,por1.id)
+ord15 = Client.placeMarketOrder(1,81,"SELL_ORDER",0.09,por1.id)
+
 # @testset "Test 1" begin
 #     @test Client.pickRandomPortfolio() == por1
 #     @test Client.pickRandomPortfolio() == por1

@@ -10,11 +10,11 @@ using Base.Iterators: zip,cycle,take,filter
 
 # function init()
 # Create (Deterministic) Limit Order Generator
-
+@info "Connecting to Exchange and initializing Limit Order Book..."
 # define types for Order Size, Price, Transcation ID, Account ID, Order Creation Time, IP Address, Port
-MyUOBType = UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer}
+MyUOBType = UnmatchedOrderBook{Float64, Float64, Int64, Int64, DateTime, String, Integer}
 # define types for Order Size, Price, Order IDs, Account IDs
-MyLOBType = OrderBook{Int64, Float64, Int64, Int64}
+MyLOBType = OrderBook{Float64, Float64, Int64, Int64}
 ob1 = MyLOBType() # Initialize empty order book
 uob1 = MyUOBType() # Initialize unmatched book process
 
@@ -32,14 +32,28 @@ lmt_order_info_iter = zip(orderid_iter,price_iter,size_iter,side_iter)
 # generate orders from the iterator
 order_info_lst = take(lmt_order_info_iter,6)
 
+# Create first order book
 # Add a bunch of orders
-@info "Connecting to Exchange and initializing Limit Order Book..."
 for (orderid, price, size, side) in order_info_lst
     submit_limit_order!(ob1,uob1,orderid,side,price,size,init_acctid)
     print(orderid, ' ',side,' ',price,'\n')
 end
+
+# Create second order book
+ob2 = MyLOBType() # Initialize empty order book
+uob2 = MyUOBType() # Initialize unmatched book process
+# fill book with random limit orders
+randspread() = ceil(-0.05*log(rand()),digits=2)
+rand_side() = rand([BUY_ORDER,SELL_ORDER])
+for i=1:10
+    # add some limit orders
+    submit_limit_order!(ob2,uob2,2i,BUY_ORDER,99.0-randspread(),rand(5:5:20),init_acctid)
+    submit_limit_order!(ob2,uob2,3i,SELL_ORDER,99.0+randspread(),rand(5:5:20),init_acctid)
+    if (rand() < 0.1) # and some market orders
+        submit_market_order!(ob2,rand_side(),rand(10:25:150))
+    end
+end
 @info "Exchange Connection successful. Limit Order Book initialization sequence complete."
-    
 # end
 
 # ======================================================================================== #
