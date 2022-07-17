@@ -26,9 +26,9 @@ function loginUser(username, password)
 end
 
 function createPortfolio(name, cash, holdings)
-    body = (; name, cash, holdings) # JSON3 will serialize this named tuple into a json object for the Resource create portfolio function 
+    body = (; name, cash, holdings) # JSON3 will serialize this named tuple into a json object for the Resource create portfolio function
     resp = HTTP.post(string(SERVER[], "/portfolio"), [], JSON3.write(body))
-    return JSON3.read(resp.body, Portfolio)
+    return JSON3.read(resp.body, Int64)
 end
 # function createPortfolio(name, cash, ticker, shares)
 #     body = (; name, cash, ticker, shares) # JSON3 will serialize this named tuple into a json object for the Resource create portfolio function 

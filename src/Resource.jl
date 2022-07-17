@@ -12,7 +12,7 @@ const ROUTER = HTTP.Router()
 
 # the createPortfolio function will pass a request `req` from the client, into the service layer
 # JSON3 will translate the http message into json and parse the request message body for the service layer
-createPortfolio(req) = Service.createPortfolio(JSON3.read(req.body))::Portfolio # requestHandler function
+createPortfolio(req) = Service.createPortfolio(JSON3.read(req.body)) # requestHandler function
 HTTP.register!(ROUTER, "POST", "/portfolio", createPortfolio) # when the method is post, we call the above function
 
 # getPortfolio(req) = Service.getPortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]))::Portfolio

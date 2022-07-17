@@ -18,7 +18,8 @@ function createPortfolio(obj)
     # portfolio = Portfolio(obj.name, obj.cash, obj.ticker, obj.shares)
     Mapper.create!(portfolio)
     # NormalizedMapper.create!(portfolio)
-    return portfolio
+    # return portfolio
+    return portfolio.id
 end
 
 # @cacheable Dates.Hour(1) function getPortfolio(id::Int64)::Portfolio
