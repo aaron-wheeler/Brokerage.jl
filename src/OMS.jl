@@ -57,7 +57,7 @@ end
 # end
 
 # ======================================================================================== #
-#----- Trade Services -----#
+#----- Trade Processing -----#
 
 function processLimitOrderSale(order::LimitOrder)
     ticker_ob = order.ticker
@@ -130,7 +130,7 @@ function cancelLimitOrderPurchase(order::CancelOrder)
 end
 
 # ======================================================================================== #
-#----- Quote Services -----#
+#----- Quote Processing -----#
 
 function queryBidAsk(ticker)
     ob_expr = Symbol("ob"*"$ticker")
@@ -158,5 +158,26 @@ end
 
 # TODO: Consider implementing the following fn into `getPortfolio` function?
 # VL_LimitOrderBook.get_acct(ob,acct_id) # returns an account map of all open orders assigned to account `acct_id`. The account map is implemented as a `Dict` containing `AVLTree`s.
-    
+
+# ======================================================================================== #
+#----- Market Maker Processing -----#
+
+function provideLiquidity(order)
+    ticker_ob = order.ticker
+    ob_expr = Symbol("ob"*"$ticker_ob")
+    uob_expr = Symbol("uob"*"$ticker_ob")
+    if order.order_side == "BUY_ORDER"
+        VL_LimitOrderBook.submit_limit_order!(eval(ob_expr), eval(uob_expr),
+                        order.order_id, BUY_ORDER, order.limit_price,
+                        order.limit_size, order.acct_id)
+    else
+        # order.order_side == "SELL_ORDER"
+        VL_LimitOrderBook.submit_limit_order!(eval(ob_expr), eval(uob_expr),
+                        order.order_id, SELL_ORDER, order.limit_price,
+                        order.limit_size, order.acct_id)
+    end
+ 
+    return
+end
+
 end # module

@@ -5,8 +5,8 @@ using Base.Iterators: zip,cycle,take,filter
 # ======================================================================================== #
 # BROKERAGE LOB INITIALIZATION
 # Create (Deterministic) Limit Order Generator
-MyUOBType = UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer} # define types for Order Size, Price, Transcation ID, Account ID, Order Creation Time, IP Address, Port
-MyLOBType = OrderBook{Int64, Float64, Int64, Int64} # define types for Order Size, Price, Order IDs, Account IDs
+MyUOBType = UnmatchedOrderBook{Float64, Float64, Int64, Int64, DateTime, String, Integer} # define types for Order Size, Price, Transcation ID, Account ID, Order Creation Time, IP Address, Port
+MyLOBType = OrderBook{Float64, Float64, Int64, Int64} # define types for Order Size, Price, Order IDs, Account IDs
 ob1 = MyLOBType() # Initialize empty order book
 uob1 = MyUOBType() # Initialize unmatched book process
 

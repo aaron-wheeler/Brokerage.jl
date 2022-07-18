@@ -303,7 +303,7 @@ function processTradeBid(order::LimitOrder)
     cross_match_lst = trade[2]
     remaining_size = trade[3]
 
-    if remaining_size !== 0
+    if remaining_size !== zero(order.limit_size)
         # TODO: delete from pendingorders and apply refund
         # TODO: return the matched order(s) back to the LOB
         throw(OrderInsertionError("order could neither be inserted nor matched"))
@@ -359,7 +359,7 @@ function processTradeAsk(order::LimitOrder)
     cross_match_lst = trade[2]
     remaining_size = trade[3]
     
-    if remaining_size !== 0
+    if remaining_size !== zero(order.limit_size)
         throw(OrderInsertionError("order could neither be inserted nor matched"))
     elseif new_open_order !== nothing && isempty(cross_match_lst) == true
         @info "Your order has been received and routed to the Exchange."
@@ -454,7 +454,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
             end
 
             # send confirmation message
-            if shares_leftover === zero(shares_leftover)
+            if shares_leftover === zero(order.fill_amount)
                 @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
                 return
             else
@@ -501,7 +501,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
         end
 
         # confirmation process
-        if funds_leftover === 0.0
+        if funds_leftover === zero(order.fill_amount)
             @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
         else
@@ -554,7 +554,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
         end
 
         # confirmation process
-        if shares_leftover === zero(shares_leftover)
+        if shares_leftover === zero(order.fill_amount)
             @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
         else
@@ -626,7 +626,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
             end
 
             # send confirmation message
-            if funds_leftover === 0.0
+            if funds_leftover === zero(order.fill_amount)
                 @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
                 return
             else
@@ -694,5 +694,15 @@ end
 # "Your order to sell to close 1 contract of T $29.50 Call 4/1 has been filled for an average price of $94.00 per contract. Your order is complete."
 
 # "Update: Because you owned 0.526674 shares of NVDA on 6/8, you've received a dividend payment of $0.02."
+
+# ======================================================================================== #
+#----- Market Maker Services -----#
+
+function provideLiquidity(order)
+    liquidity_order = OMS.provideLiquidity(order)
+    # send confirmation
+    @info "Liquidity order completed. $(order.order_side) quote processed."
+    return
+end
 
 end # module

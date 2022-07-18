@@ -69,6 +69,12 @@ getBidAskOrders(req) = Service.getBidAskOrders(parse(Int, HTTP.URIs.splitpath(re
 HTTP.register!(ROUTER, "GET", "/quote_book_orders/*", getBidAskOrders)
 
 # ======================================================================================== #
+#----- MARKET MAKER ROUTING -----#
+
+provideLiquidity(req) = Service.provideLiquidity(JSON3.read(req.body, NamedTuple))
+HTTP.register!(ROUTER, "POST", "/liquidity", provideLiquidity)
+
+# ======================================================================================== #
 
 # uses 'withcontext' function from Contexts.jl
 # passes in 'User' function from Auth.jl
