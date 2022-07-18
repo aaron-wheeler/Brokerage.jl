@@ -44,4 +44,11 @@ function run(dbfile, authkeysfile)
     Resource.run()
 end
 
+function remote_run(dbfile, authkeysfile)
+    Workers.init()
+    Mapper.init(dbfile)
+    Auth.init(authkeysfile)
+    Resource.remote_run()
+end
+
 end

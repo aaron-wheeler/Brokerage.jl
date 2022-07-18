@@ -68,7 +68,7 @@ end # TODO: create field for fill_mode
 # default constructors for JSON3
 ==(x::LimitOrder, y::LimitOrder) = x.order_id == y.order_id
 LimitOrder() = LimitOrder(0, 0, "", 0.0, 0.0, 0)
-LimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id) = LimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id)
+# LimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id) = LimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id)
 StructTypes.StructType(::Type{LimitOrder}) = StructTypes.Mutable()
 StructTypes.idproperty(::Type{LimitOrder}) = :order_id
 
@@ -88,7 +88,7 @@ MarketOrder() = MarketOrder(0, 0, "", 0.0, 0, false)
 # MarketOrder(ticker::Int8, order_id::Int64, order_side::String, mo_size::Float64, acct_id::Int64) = MarketOrder(ticker, order_id, order_side, mo_size, acct_id, 0.0)
 # MarketOrder(ticker::Int8, order_id::Int64, order_side::String, acct_id::Int64, funds::Float64) = MarketOrder(ticker, order_id, order_side, 0.0, acct_id, funds)
 MarketOrder(ticker, order_id, order_side, fill_amount, acct_id) = MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, false)
-MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds) = MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds)
+# MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds) = MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds)
 StructTypes.StructType(::Type{MarketOrder}) = StructTypes.Mutable()
 StructTypes.idproperty(::Type{MarketOrder}) = :order_id
 
@@ -106,7 +106,7 @@ end
 # default constructors for JSON3
 ==(x::CancelOrder, y::CancelOrder) = x.order_id == y.order_id
 CancelOrder() = CancelOrder(0, 0, "", 0.0, 0)
-CancelOrder(ticker, order_id, order_side, limit_price, acct_id) = CancelOrder(ticker, order_id, order_side, limit_price, acct_id)
+# CancelOrder(ticker, order_id, order_side, limit_price, acct_id) = CancelOrder(ticker, order_id, order_side, limit_price, acct_id)
 StructTypes.StructType(::Type{CancelOrder}) = StructTypes.Mutable()
 StructTypes.idproperty(::Type{CancelOrder}) = :order_id
 

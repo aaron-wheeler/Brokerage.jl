@@ -1,7 +1,7 @@
 module Resource
 # this module defines server-side stuff
 
-using Dates, HTTP, JSON3
+using Dates, HTTP, JSON3, Sockets
 # .. means use this package as defined in the top level scope (as opposed to include())
 using ..Model, ..Service, ..Auth, ..Contexts, ..Workers
 
@@ -138,6 +138,15 @@ end
 # for handling streams, add argument streams=true
 function run()
     HTTP.serve(requestHandler, "0.0.0.0", 8080)
+end
+
+# start up remote server
+function remote_run()
+    port_number = 8080
+    host_ip_address = Sockets.getipaddr()
+    HTTP.serve(requestHandler, host_ip_address, port_number)
+
+    @info "Server started. address: $(host_ip_address) port: $(port_number) at $(Dates.now(Dates.UTC))"
 end
 
 end # module
