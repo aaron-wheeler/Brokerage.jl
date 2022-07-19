@@ -30,7 +30,7 @@ init_acctid = 0
 lmt_order_info_iter = zip(orderid_iter,price_iter,size_iter,side_iter)
 
 # generate orders from the iterator
-order_info_lst = take(lmt_order_info_iter,6)
+order_info_lst = take(lmt_order_info_iter,10)
 
 # Create first order book
 # Add a bunch of orders
