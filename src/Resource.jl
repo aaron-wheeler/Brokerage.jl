@@ -44,7 +44,7 @@ HTTP.register!(ROUTER, "GET", "/", pickRandomPortfolio)
 placeLimitOrder(req) = Service.placeLimitOrder(JSON3.read(req.body))::LimitOrder
 HTTP.register!(ROUTER, "POST", "/order", placeLimitOrder)
 
-placeMarketOrder(req) = Service.placeMarketOrder(JSON3.read(req.body))::MarketOrder
+placeMarketOrder(req) = Service.placeMarketOrder(JSON3.read(req.body))
 HTTP.register!(ROUTER, "POST", "/m_order", placeMarketOrder)
 
 placeCancelOrder(req) = Service.placeCancelOrder(JSON3.read(req.body))::CancelOrder
@@ -121,6 +121,9 @@ function requestHandler(req)
     catch e
         if e isa Auth.Unauthenticated
             resp = HTTP.Response(401)
+        elseif e isa Service.InsufficientFunds || e isa Service.InsufficientShares
+            @warn "Order not processed. Insufficient resources."
+            resp = HTTP.Response(204) # 2xx status code to avoid interupting process
         else
             s = IOBuffer()
             showerror(s, e, catch_backtrace(); backtrace=true)
@@ -145,8 +148,6 @@ function remote_run()
     port_number = 8080
     host_ip_address = Sockets.getipaddr()
     HTTP.serve(requestHandler, host_ip_address, port_number)
-
-    @info "Server started. address: $(host_ip_address) port: $(port_number) at $(Dates.now(Dates.UTC))"
 end
 
 end # module

@@ -77,7 +77,7 @@ end
 function placeMarketOrder(ticker, order_id, order_side, fill_amount, acct_id; byfunds = false)
     body = (; ticker, order_id, order_side, fill_amount, acct_id, byfunds)
     resp = HTTP.post(string(SERVER[], "/m_order"), [], JSON3.write(body))
-    return JSON3.read(resp.body, MarketOrder)
+    return # JSON3.read(resp.body, MarketOrder)
 end
 
 function placeCancelOrder(ticker, order_id, order_side, limit_price, acct_id)
