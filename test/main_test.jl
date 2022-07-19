@@ -111,33 +111,6 @@ ord13 = Client.placeLimitOrder(1,87,"SELL_ORDER",99.0,1.7,por1)
 ord14 = Client.placeMarketOrder(1,81,"BUY_ORDER",1.1,por1)
 ord15 = Client.placeMarketOrder(1,81,"SELL_ORDER",0.09,por1)
 
-# @testset "Test 1" begin
-#     @test Client.pickRandomPortfolio() == por1
-#     @test Client.pickRandomPortfolio() == por1
-#     @test Client.getPortfolio(por1) == por1
-# end
-
-# push!(por1.holdings, 3)
-# por2 = Client.updatePortfolio(por1)
-
-# @testset "Test 2" begin
-#     @test length(por2.holdings) == 3
-#     @test length(Client.getPortfolio(por1).holdings) == 3
-# end
-
-# Client.deletePortfolio(por1)
-# por2 = Client.createPortfolio("Trader 2", 9670.0, [2, 4])
-# @test Client.pickRandomPortfolio() == por2
-
-# Client.createUser("aaronW", "password456")
-# user = Client.loginUser("aaronW", "password456")
-
-# newuser_por1 = Client.createPortfolio("Trader 3", 10500.80, [1, 2, 3, 4])
-
-# For trouble-shooting VL_LimitOrderBook integration...
-# using VL_LimitOrderBook
-# order = Model.LimitOrder(1,101, "SELL_ORDER", 99.10, 5, 1287)
-# Service.processTrade(order)
-# order = Model.LimitOrder(1,101, "BUY_ORDER", 99.10, 5, 1287)
-# Service.processTrade(order)
-# VL_LimitOrderBook notify functionality needs to be revisted, the above order does not appear to match and notify
+## Data collection testing
+# OMS.write_market_data(OMS.ticker_symbol, OMS.tick_time, OMS.tick_bid_prices,
+#                         OMS.tick_ask_prices, OMS.tick_trading_volume)
