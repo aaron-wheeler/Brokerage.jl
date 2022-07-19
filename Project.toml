@@ -5,7 +5,9 @@ version = "0.1.0"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DBInterface = "a10d1c49-ce27-4219-8d33-6db1a4562965"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 ExpiringCaches = "bd5c46ae-da38-4b10-bcdd-5005402f2c4f"
 HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
@@ -19,6 +21,8 @@ Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 VL_LimitOrderBook = "aaf583bd-e1f6-46ea-b02f-a6ceb51252d5"
 
 [compat]
+CSV = "0.10"
+DataFrames = "1"
 DBInterface = "2"
 ExpiringCaches = "1"
 HTTP = "1"

@@ -2,7 +2,7 @@ module OMS
 # Order Management Systems (OMS) - order processing and interface with Exchange service layer
 
 using ..Model
-using VL_LimitOrderBook, Dates
+using VL_LimitOrderBook, Dates, CSV, DataFrames
 using Base.Iterators: zip,cycle,take,filter
 
 # ======================================================================================== #
@@ -53,8 +53,41 @@ for i=1:10
         submit_market_order!(ob2,rand_side(),rand(10:25:150))
     end
 end
+
 @info "Exchange Connection successful. Limit Order Book initialization sequence complete."
 # end
+
+# ======================================================================================== #
+#----- Data Collection -----#
+
+# create data collection vectors
+ticker_symbol = Int[]
+tick_time = DateTime[]
+tick_bid_prices = Float64[]
+tick_ask_prices = Float64[]
+tick_trading_volume = Float64[]
+
+# post-simulation data collection methods
+function collect_tick_data(ticker, bid, ask, shares_traded)
+    push!(ticker_symbol, ticker)
+    timestamp = Dates.now()
+    push!(tick_time, timestamp)
+    push!(tick_bid_prices, bid)
+    push!(tick_ask_prices, ask)
+    push!(tick_trading_volume, shares_traded)
+end
+
+function write_market_data(ticker_symbol, tick_time, tick_bid_prices,
+                            tick_ask_prices, tick_trading_volume)
+    # prepare tabular dataset
+    market_data = DataFrame(ticker = ticker_symbol, timestamp = tick_time,
+                bid_prices = tick_bid_prices, ask_prices = tick_ask_prices,
+                trading_volume = tick_trading_volume)
+    # Create save path
+    savepath = mkpath("../../Data/ABMs/Brokerage")
+    # Save data
+    CSV.write("$(savepath)/market_data.csv", market_data)
+end
 
 # ======================================================================================== #
 #----- Trade Processing -----#
@@ -91,6 +124,13 @@ function processMarketOrderSale(order::MarketOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
     trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),SELL_ORDER,order.fill_amount)
+    
+    # collect market data
+    shares_leftover = trade[2]
+    shares_traded = order.fill_amount - shares_leftover
+    bid, ask = VL_LimitOrderBook.best_bid_ask(eval(ob_expr))
+    collect_tick_data(order.ticker, bid, ask, shares_traded)
+    
     return trade
 end
 
@@ -98,6 +138,13 @@ function processMarketOrderPurchase(order::MarketOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
     trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),BUY_ORDER,order.fill_amount)
+    
+    # collect market data
+    shares_leftover = trade[2]
+    shares_traded = order.fill_amount - shares_leftover
+    bid, ask = VL_LimitOrderBook.best_bid_ask(eval(ob_expr))
+    collect_tick_data(order.ticker, bid, ask, shares_traded)
+
     return trade
 end
 
