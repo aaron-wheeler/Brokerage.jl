@@ -71,7 +71,7 @@ end
 function placeLimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id)
     body = (; ticker, order_id, order_side, limit_price, limit_size, acct_id)
     resp = HTTP.post(string(SERVER[], "/order"), [], JSON3.write(body))
-    return JSON3.read(resp.body, LimitOrder)
+    return # JSON3.read(resp.body, LimitOrder)
 end
 
 function placeMarketOrder(ticker, order_id, order_side, fill_amount, acct_id; byfunds = false)
@@ -106,7 +106,7 @@ end
 
 function getBidAskVolume(ticker) # returns tuple of total bid and ask volume from order book
     resp = HTTP.get(string(SERVER[], "/quote_book_volume/$ticker"))
-    return JSON3.read(resp.body, Tuple{Float64, Float64}) # this Tuple type must match the one specified for order sizes in OMS layer
+    return JSON3.read(resp.body, Tuple{Int64, Int64}) # this Tuple type must match the one specified for order sizes in OMS layer
 end
 
 function getBidAskOrders(ticker) # returns tuple of total number of orders on each side of order book

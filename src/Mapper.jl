@@ -34,7 +34,7 @@ function init(dbfile)
                 portfolio_id INTEGER,
                 userid INTEGER,
                 ticker TEXT,
-                shares REAL
+                shares INTEGER
             )
         """)
         # DBInterface.execute(db, """

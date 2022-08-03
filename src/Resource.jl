@@ -41,10 +41,11 @@ HTTP.register!(ROUTER, "GET", "/", pickRandomPortfolio)
 # ======================================================================================== #
 #----- ORDER ROUTING -----#
 
-placeLimitOrder(req) = Service.placeLimitOrder(JSON3.read(req.body))::LimitOrder
+# placeLimitOrder(req) = Service.placeLimitOrder(JSON3.read(req.body))::LimitOrder
+placeLimitOrder(req) = Service.placeLimitOrder(JSON3.read(req.body, NamedTuple))
 HTTP.register!(ROUTER, "POST", "/order", placeLimitOrder)
 
-placeMarketOrder(req) = Service.placeMarketOrder(JSON3.read(req.body))
+placeMarketOrder(req) = Service.placeMarketOrder(JSON3.read(req.body, NamedTuple))
 HTTP.register!(ROUTER, "POST", "/m_order", placeMarketOrder)
 
 placeCancelOrder(req) = Service.placeCancelOrder(JSON3.read(req.body))::CancelOrder

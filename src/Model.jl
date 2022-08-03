@@ -21,7 +21,7 @@ mutable struct Portfolio
     cash::Float64 # passed by client, TODO: make this BigInt
     timespicked::Int64 # service-managed
     # holdings::Vector{Int64} # TODO: avoid making this 64-bit
-    holdings::Dict{Symbol, Float64} # TODO: make this {Int8, BigInt}
+    holdings::Dict{Symbol, Int64} # TODO: make this {Int8, BigInt}
     # ticker::Vector{Int64}
     # shares::Vector{Float64}
     pendingorders::Vector{Int64} # service-managed
@@ -54,43 +54,48 @@ StructTypes.idproperty(::Type{User}) = :id
 
 abstract type Order end
 
-# TODO: Test whether these really need to be mutable. Fix if not. 
-
-mutable struct LimitOrder <: Order
+struct LimitOrder <: Order
     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets
     order_id::Int64 # TODO: make this service-managed
     order_side::String
     limit_price::Float64
-    limit_size::Float64
+    limit_size::Int64
     acct_id::Int64 # same id as portfolio.id
 end # TODO: create field for fill_mode
 
 # default constructors for JSON3
-==(x::LimitOrder, y::LimitOrder) = x.order_id == y.order_id
-LimitOrder() = LimitOrder(0, 0, "", 0.0, 0.0, 0)
+# ==(x::LimitOrder, y::LimitOrder) = x.order_id == y.order_id
+# LimitOrder() = LimitOrder(0, 0, "", 0.0, 0, 0)
 # LimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id) = LimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id)
-StructTypes.StructType(::Type{LimitOrder}) = StructTypes.Mutable()
-StructTypes.idproperty(::Type{LimitOrder}) = :order_id
+# StructTypes.StructType(::Type{LimitOrder}) = StructTypes.Mutable()
+# StructTypes.idproperty(::Type{LimitOrder}) = :order_id
 
-mutable struct MarketOrder <: Order
+struct MarketOrder <: Order
     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets
     order_id::Int64 # service-managed; Do we need this?**
     order_side::String
-    fill_amount::Float64 # invest by shares or funds depending on `byfunds` field (default = by shares)
+    share_amount::Int64
+    cash_amount::Float64
     acct_id::Int64 # same id as portfolio.id
     byfunds::Bool
 end
 # no fill_mode field; only `fill_mode=allornone` used for market orders
 
 # default constructors for JSON3
-==(x::MarketOrder, y::MarketOrder) = x.order_id == y.order_id
-MarketOrder() = MarketOrder(0, 0, "", 0.0, 0, false)
+# ==(x::MarketOrder, y::MarketOrder) = x.order_id == y.order_id
+# MarketOrder() = MarketOrder(0, 0, "", 0.0, 0, false)
 # MarketOrder(ticker::Int8, order_id::Int64, order_side::String, mo_size::Float64, acct_id::Int64) = MarketOrder(ticker, order_id, order_side, mo_size, acct_id, 0.0)
 # MarketOrder(ticker::Int8, order_id::Int64, order_side::String, acct_id::Int64, funds::Float64) = MarketOrder(ticker, order_id, order_side, 0.0, acct_id, funds)
-MarketOrder(ticker, order_id, order_side, fill_amount, acct_id) = MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, false)
+
+# invest by shares or funds depending on `byfunds` field (default = by shares)
+MarketOrder(ticker, order_id, order_side, share_amount, acct_id) = MarketOrder(ticker, order_id, order_side, share_amount, 0.0, acct_id, false)
+# MarketOrder(ticker::Int64, order_id::Int64, order_side::String, share_amount::Int64, acct_id::Int64) = MarketOrder(ticker, order_id, order_side, share_amount, 0.0, acct_id, false)
+MarketOrder(ticker, order_id, order_side, cash_amount, acct_id, byfunds) = MarketOrder(ticker, order_id, order_side, 0, cash_amount, acct_id, byfunds)
+# MarketOrder(ticker::Int64, order_id::Int64, order_side::String, cash_amount::Float64, acct_id::Int64, byfunds::Bool) = MarketOrder(ticker, order_id, order_side, 0, cash_amount, acct_id, byfunds)
+
 # MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds) = MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds)
-StructTypes.StructType(::Type{MarketOrder}) = StructTypes.Mutable()
-StructTypes.idproperty(::Type{MarketOrder}) = :order_id
+# StructTypes.StructType(::Type{MarketOrder}) = StructTypes.Mutable()
+# StructTypes.idproperty(::Type{MarketOrder}) = :order_id
 
 mutable struct CancelOrder <: Order
     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets

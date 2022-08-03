@@ -13,7 +13,7 @@ function createPortfolio(obj)
     @assert haskey(obj, :holdings) && !isempty(obj.holdings)
     # @assert haskey(obj, :ticker) && !isempty(obj.ticker)
     # @assert haskey(obj, :shares) && !isempty(obj.shares)
-    @assert haskey(obj, :cash) && 1.0 < obj.cash < 1000000.0
+    @assert haskey(obj, :cash) && 1.0 < obj.cash
     portfolio = Portfolio(obj.name, obj.cash, obj.holdings)
     # portfolio = Portfolio(obj.name, obj.cash, obj.ticker, obj.shares)
     Mapper.create!(portfolio)
@@ -118,7 +118,7 @@ function placeLimitOrder(obj)
             # TODO: add order_id to pendingorders
             order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
             processTradeBid(order) # TODO: integrate @asynch functionality
-            return order
+            return # return order.order_id?
         else
             throw(InsufficientFunds())            
         end
@@ -127,7 +127,7 @@ function placeLimitOrder(obj)
         holdings = Mapper.getHoldings(obj.acct_id)
         # TODO: Implement short-selling functionality
         ticker = obj.ticker
-        shares_owned = get(holdings, Symbol("$ticker"), 0.0) 
+        shares_owned = get(holdings, Symbol("$ticker"), 0) 
         if shares_owned ≥ obj.limit_size
             # remove shares
             updated_shares = shares_owned - obj.limit_size
@@ -141,7 +141,7 @@ function placeLimitOrder(obj)
             # TODO: add order_id to pendingorders
             order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
             processTradeAsk(order) # TODO: integrate @asynch functionality
-            return order
+            return # return order.order_id?
         else
             throw(InsufficientShares())            
         end
@@ -171,7 +171,7 @@ function placeMarketOrder(obj)
                 # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
                 processTradeBuy(order; estimated_price = estimated_price) # TODO: integrate @asynch functionality
-                return order
+                return
             else
                 throw(InsufficientFunds())            
             end
@@ -180,8 +180,8 @@ function placeMarketOrder(obj)
             holdings = Mapper.getHoldings(obj.acct_id)
             # TODO: Implement short-selling functionality
             ticker = obj.ticker
-            shares_owned = get(holdings, Symbol("$ticker"), 0.0)
-            if shares_owned > 0.0
+            shares_owned = get(holdings, Symbol("$ticker"), 0)
+            if shares_owned ≥ obj.fill_amount
                 # remove shares
                 updated_shares = shares_owned - obj.fill_amount
                 tick_key = (Symbol(ticker),)
@@ -194,7 +194,7 @@ function placeMarketOrder(obj)
                 # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
                 processTradeSell(order) # TODO: integrate @asynch functionality
-                return order
+                return
             else
                 throw(InsufficientShares())            
             end
@@ -213,7 +213,7 @@ function placeMarketOrder(obj)
                 # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
                 processTradeBuy(order) # TODO: integrate @asynch functionality
-                return order
+                return
             else
                 throw(InsufficientFunds())            
             end
@@ -223,11 +223,11 @@ function placeMarketOrder(obj)
             # TODO: Implement short-selling functionality
             ticker = obj.ticker
             best_ask = (getBidAsk(obj.ticker))[2]
-            shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+            shares_owned = get(holdings, Symbol("$ticker"), 0)
             current_share_value = shares_owned * best_ask
             if current_share_value > obj.fill_amount # TODO: Test the functionality here for robustness, asynch & liquidity could break this
-                # remove shares
-                estimated_shares = (obj.fill_amount / current_share_value) * shares_owned 
+                # remove estimated amount of shares to be sold
+                estimated_shares = floor(Int64, ((obj.fill_amount / current_share_value) * shares_owned))
                 updated_shares = shares_owned - estimated_shares
                 tick_key = (Symbol(ticker),)
                 share_val = (updated_shares,)
@@ -239,7 +239,7 @@ function placeMarketOrder(obj)
                 # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
                 processTradeSell(order; estimated_shares = estimated_shares) # TODO: integrate @asynch functionality
-                return order
+                return
             else
                 throw(InsufficientShares())            
             end
@@ -314,7 +314,7 @@ function processTradeBid(order::LimitOrder)
         # update portfolio holdings{tickers, shares} of buyer
         holdings = Mapper.getHoldings(order.acct_id)
         ticker = order.ticker
-        shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+        shares_owned = get(holdings, Symbol("$ticker"), 0)
         new_shares = order.limit_size + shares_owned
         tick_key = (Symbol(ticker),)
         share_val = (new_shares,)
@@ -326,7 +326,7 @@ function processTradeBid(order::LimitOrder)
         # update portfolio cash of matched seller(s)
         for i in 1:length(cross_match_lst)
             matched_order = cross_match_lst[i]
-            # check if order is native to Brokerage (e.g., not from a market maker)
+            # update portfolio if order is native to Brokerage (i.e., not from a market maker)
             if matched_order.acctid > Mapper.MM_COUNTER
                 earnings = matched_order.size * order.limit_price # crossed order clears at bid price
                 cash = Mapper.getCash(matched_order.acctid)
@@ -375,11 +375,11 @@ function processTradeAsk(order::LimitOrder)
         # update portfolio holdings{tickers, shares} of matched buyer(s)
         for i in 1:length(cross_match_lst)
             matched_order = cross_match_lst[i]
-            # check if order is native to Brokerage (e.g., not from a market maker)
+            # update portfolio if order is native to Brokerage (i.e., not from a market maker)
             if matched_order.acctid > Mapper.MM_COUNTER
                 holdings = Mapper.getHoldings(matched_order.acctid)
                 ticker = order.ticker
-                shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+                shares_owned = get(holdings, Symbol("$ticker"), 0)
                 new_shares = matched_order.size + shares_owned
                 tick_key = (Symbol(ticker),)
                 share_val = (new_shares,)
@@ -406,6 +406,7 @@ end
 function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
     # navigate order by share amount or cash amount
     if order.byfunds == false
+        # process order by shares
         trade = OMS.processMarketOrderPurchase(order)
         order_match_lst = trade[1]
         shares_leftover = trade[2]
@@ -419,7 +420,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
         if cash_owed > (cash + estimated_price)
             # TODO: delete from pendingorders and apply `estimated_price` refund
             # TODO: return the matched order(s) back to the LOB
-            throw(LiquidityError("Cash owed exceeded account balance. Order canceled."))
+            throw(LiquidityError("Cash owed exceeds account balance. Order canceled."))
         else
             # balance cash of buyer
             price_adjustment = cash_owed - estimated_price
@@ -428,8 +429,8 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
             # update portfolio holdings{tickers, shares} of buyer
             holdings = Mapper.getHoldings(order.acct_id)
             ticker = order.ticker
-            shares_owned = get(holdings, Symbol("$ticker"), 0.0)
-            shares_bought = order.fill_amount - shares_leftover
+            shares_owned = get(holdings, Symbol("$ticker"), 0)
+            shares_bought = order.share_amount - shares_leftover
             new_shares = shares_owned + shares_bought
             tick_key = (Symbol(ticker),)
             share_val = (new_shares,)
@@ -454,11 +455,11 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
             end
 
             # send confirmation message
-            if shares_leftover === zero(order.fill_amount)
+            if shares_leftover === zero(order.share_amount)
                 @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
                 return
             else
-                @info "Trade partially fulfilled at $(Dates.now(Dates.UTC)). Only $(shares_bought) out of $(order.fill_amount) were able to be purchased. Your account has been updated."
+                @info "Trade partially fulfilled at $(Dates.now(Dates.UTC)). Only $(shares_bought) out of $(order.share_amount) were able to be purchased. Your account has been updated."
                 return
             end
         end
@@ -467,7 +468,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
         trade = OMS.processMarketOrderPurchase_byfunds(order)
         order_match_lst = trade[1]
         funds_leftover = trade[2]
-        shares_bought = 0.0
+        shares_bought = 0
         for i in 1:length(order_match_lst)
             matched_order = order_match_lst[i]
             shares_bought += matched_order.size
@@ -476,7 +477,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
         # update portfolio holdings{tickers, shares} of buyer
         holdings = Mapper.getHoldings(order.acct_id)
         ticker = order.ticker
-        shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+        shares_owned = get(holdings, Symbol("$ticker"), 0)
         updated_shares = shares_bought + shares_owned
         tick_key = (Symbol(ticker),)
         share_val = (updated_shares,)
@@ -501,7 +502,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
         end
 
         # confirmation process
-        if funds_leftover === zero(order.fill_amount)
+        if funds_leftover === zero(order.cash_amount)
             @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
         else
@@ -515,9 +516,10 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
     end
 end
 
-function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
+function processTradeSell(order::MarketOrder; estimated_shares = 0)
     # navigate order by share amount or cash amount
     if order.byfunds == false
+        # process order by share amount
         trade = OMS.processMarketOrderSale(order)
         order_match_lst = trade[1]
         shares_leftover = trade[2]
@@ -540,7 +542,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
             if matched_order.acctid > Mapper.MM_COUNTER
                 holdings = Mapper.getHoldings(matched_order.acctid)
                 ticker = order.ticker
-                shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+                shares_owned = get(holdings, Symbol("$ticker"), 0)
                 new_shares = matched_order.size + shares_owned
                 tick_key = (Symbol(ticker),)
                 share_val = (new_shares,)
@@ -554,14 +556,14 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
         end
 
         # confirmation process
-        if shares_leftover === zero(order.fill_amount)
+        if shares_leftover === zero(order.share_amount)
             @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
         else
             # partial fill - refund remaining shares
             holdings = Mapper.getHoldings(order.acct_id)
             ticker = order.ticker
-            shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+            shares_owned = get(holdings, Symbol("$ticker"), 0)
             new_shares = shares_leftover + shares_owned
             tick_key = (Symbol(ticker),)
             share_val = (new_shares,)
@@ -578,8 +580,8 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
         funds_leftover = trade[2]
         holdings = Mapper.getHoldings(order.acct_id)
         ticker = order.ticker
-        shares_held = get(holdings, Symbol("$ticker"), 0.0)
-        shares_owed = 0.0
+        shares_held = get(holdings, Symbol("$ticker"), 0)
+        shares_owed = 0
         for i in 1:length(order_match_lst)
             matched_order = order_match_lst[i]
             shares_owed += matched_order.size
@@ -588,7 +590,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
         if shares_owed > (shares_held + estimated_shares)
             # TODO: delete from pendingorders and apply `estimated_shares` refund
             # TODO: return the matched order(s) back to the LOB
-            throw(LiquidityError("Shares owed exceeded account share holdings. Order canceled."))
+            throw(LiquidityError("Shares owed exceeds account holdings. Order canceled."))
         else
             # balance shares of seller
             share_adjustment = shares_owed - estimated_shares
@@ -600,7 +602,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
             Mapper.update_holdings(order.acct_id, updated_holdings)
             # update portfolio cash of seller
             cash = Mapper.getCash(order.acct_id)
-            earnings = order.fill_amount - funds_leftover
+            earnings = order.cash_amount - funds_leftover
             updated_cash = cash + earnings
             Mapper.update_cash(order.acct_id, updated_cash)
             # TODO: remove from pendingorders and add to completedorders
@@ -612,7 +614,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
                 if matched_order.acctid > Mapper.MM_COUNTER
                     holdings = Mapper.getHoldings(matched_order.acctid)
                     ticker = order.ticker
-                    shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+                    shares_owned = get(holdings, Symbol("$ticker"), 0)
                     new_shares = matched_order.size + shares_owned
                     tick_key = (Symbol(ticker),)
                     share_val = (new_shares,)
@@ -626,11 +628,11 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0.0)
             end
 
             # send confirmation message
-            if funds_leftover === zero(order.fill_amount)
+            if funds_leftover === zero(order.cash_amount)
                 @info "Trade fulfilled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
                 return
             else
-                @info "Trade partially fulfilled at $(Dates.now(Dates.UTC)). Only \$ $(earnings) out of \$ $(order.fill_amount) worth of shares were sold. Your account has been updated."
+                @info "Trade partially fulfilled at $(Dates.now(Dates.UTC)). Only \$ $(earnings) out of \$ $(order.cash_amount) worth of shares were sold. Your account has been updated."
                 return
             end
         end
@@ -645,7 +647,7 @@ function cancelTrade(order::CancelOrder)
             # refund shares
             holdings = Mapper.getHoldings(order.acct_id)
             ticker = order.ticker
-            shares_owned = get(holdings, Symbol("$ticker"), 0.0)
+            shares_owned = get(holdings, Symbol("$ticker"), 0)
             updated_shares = shares_owned + canceled_trade.size
             tick_key = (Symbol(ticker),)
             share_val = (updated_shares,)
@@ -658,7 +660,7 @@ function cancelTrade(order::CancelOrder)
             @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
         elseif canceled_trade !== nothing && canceled_trade.acctid ≤ Mapper.MM_COUNTER
-            throw(OrderNotFound("unauthorized attempt to canceled non-native order"))
+            throw(OrderNotFound("unauthorized attempt to cancel non-native order"))
         else
             throw(OrderNotFound())
         end
@@ -677,7 +679,7 @@ function cancelTrade(order::CancelOrder)
             @info "Trade canceled at $(Dates.now(Dates.UTC)). Your order is complete and your account has been updated."
             return
         elseif canceled_trade !== nothing && canceled_trade.acctid ≤ Mapper.MM_COUNTER
-            throw(OrderNotFound("unauthorized attempt to canceled non-native order"))
+            throw(OrderNotFound("unauthorized attempt to cancel non-native order"))
         else
             throw(OrderNotFound())
         end

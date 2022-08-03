@@ -2,8 +2,8 @@ module OMS
 # Order Management Systems (OMS) - order processing and interface with Exchange service layer
 
 using ..Model
-using VL_LimitOrderBook, Dates, CSV, DataFrames
-using Base.Iterators: zip,cycle,take,filter
+using VL_LimitOrderBook, Dates, CSV, DataFrames, Random
+# using Base.Iterators: zip,cycle,take,filter
 
 # ======================================================================================== #
 #----- LOB INITIALIZATION -----#
@@ -12,43 +12,59 @@ using Base.Iterators: zip,cycle,take,filter
 # Create (Deterministic) Limit Order Generator
 @info "Connecting to Exchange and initializing Limit Order Book..."
 # define types for Order Size, Price, Transcation ID, Account ID, Order Creation Time, IP Address, Port
-MyUOBType = UnmatchedOrderBook{Float64, Float64, Int64, Int64, DateTime, String, Integer}
+MyUOBType = UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer}
 # define types for Order Size, Price, Order IDs, Account IDs
-MyLOBType = OrderBook{Float64, Float64, Int64, Int64}
-ob1 = MyLOBType() # Initialize empty order book
-uob1 = MyUOBType() # Initialize unmatched book process
-
-orderid_iter = Base.Iterators.countfrom(1)
-sign_iter = cycle([1,-1,1,-1])
-side_iter = ( s > 0 ? SELL_ORDER : BUY_ORDER for s in sign_iter )
-spread_iter = cycle([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]*1e-2)
-price_iter = ( Float32(99.0 + sgn*δ) for (δ,sgn) in zip(spread_iter,sign_iter) )
-size_iter = cycle([10, 11, 20, 21, 30, 31, 40, 41, 50, 51])
+MyLOBType = OrderBook{Int64, Float64, Int64, Int64}
+# define initialization params and methods
 init_acctid = 0
-
-# zip them all together
-lmt_order_info_iter = zip(orderid_iter,price_iter,size_iter,side_iter)
-
-# generate orders from the iterator
-order_info_lst = take(lmt_order_info_iter,10)
+init_orderid = 0
+Random.seed!(1234)
+randspread() = ceil(-0.05*log(rand()),digits=2)
+rand_side() = rand([BUY_ORDER,SELL_ORDER])
 
 # Create first order book
-# Add a bunch of orders
-for (orderid, price, size, side) in order_info_lst
-    submit_limit_order!(ob1,uob1,orderid,side,price,size,init_acctid)
-    print(orderid, ' ',side,' ',price,'\n')
+ob1 = MyLOBType() # Initialize empty order book
+uob1 = MyUOBType() # Initialize unmatched book process
+# fill book with random limit orders
+for i=1:10
+    # add some limit orders
+    submit_limit_order!(ob1,uob1,init_orderid,BUY_ORDER,99.0-randspread(),rand(5:5:20),init_acctid)
+    submit_limit_order!(ob1,uob1,init_orderid,SELL_ORDER,99.0+randspread(),rand(5:5:20),init_acctid)
+    if (rand() < 0.1) # and some market orders
+        submit_market_order!(ob1,rand_side(),rand(10:25:150))
+    end
 end
+
+# orderid_iter = Base.Iterators.countfrom(1)
+# sign_iter = cycle([1,-1,1,-1])
+# side_iter = ( s > 0 ? SELL_ORDER : BUY_ORDER for s in sign_iter )
+# spread_iter = cycle([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]*1e-2)
+# price_iter = ( Float32(99.0 + sgn*δ) for (δ,sgn) in zip(spread_iter,sign_iter) )
+# size_iter = cycle([10, 11, 20, 21, 30, 31, 40, 41, 50, 51])
+# init_acctid = 0
+
+# # zip them all together
+# lmt_order_info_iter = zip(orderid_iter,price_iter,size_iter,side_iter)
+
+# # generate orders from the iterator
+# order_info_lst = take(lmt_order_info_iter,10)
+
+# # Create first order book
+# # Add a bunch of orders
+# for (orderid, price, size, side) in order_info_lst
+#     println(price)
+#     submit_limit_order!(ob1,uob1,orderid,side,price,size,init_acctid)
+#     print(orderid, ' ',side,' ',price,'\n')
+# end
 
 # Create second order book
 ob2 = MyLOBType() # Initialize empty order book
 uob2 = MyUOBType() # Initialize unmatched book process
 # fill book with random limit orders
-randspread() = ceil(-0.05*log(rand()),digits=2)
-rand_side() = rand([BUY_ORDER,SELL_ORDER])
 for i=1:10
     # add some limit orders
-    submit_limit_order!(ob2,uob2,2i,BUY_ORDER,99.0-randspread(),rand(5:5:20),init_acctid)
-    submit_limit_order!(ob2,uob2,3i,SELL_ORDER,99.0+randspread(),rand(5:5:20),init_acctid)
+    submit_limit_order!(ob2,uob2,init_orderid,BUY_ORDER,99.0-randspread(),rand(5:5:20),init_acctid)
+    submit_limit_order!(ob2,uob2,init_orderid,SELL_ORDER,99.0+randspread(),rand(5:5:20),init_acctid)
     if (rand() < 0.1) # and some market orders
         submit_market_order!(ob2,rand_side(),rand(10:25:150))
     end
@@ -123,11 +139,11 @@ end
 function processMarketOrderSale(order::MarketOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
-    trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),SELL_ORDER,order.fill_amount)
+    trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),SELL_ORDER,order.share_amount)
     
     # collect market data
     shares_leftover = trade[2]
-    shares_traded = order.fill_amount - shares_leftover
+    shares_traded = order.share_amount - shares_leftover
     bid, ask = VL_LimitOrderBook.best_bid_ask(eval(ob_expr))
     collect_tick_data(order.ticker, bid, ask, shares_traded)
     
@@ -137,11 +153,11 @@ end
 function processMarketOrderPurchase(order::MarketOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
-    trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),BUY_ORDER,order.fill_amount)
+    trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),BUY_ORDER,order.share_amount)
     
     # collect market data
     shares_leftover = trade[2]
-    shares_traded = order.fill_amount - shares_leftover
+    shares_traded = order.share_amount - shares_leftover
     bid, ask = VL_LimitOrderBook.best_bid_ask(eval(ob_expr))
     collect_tick_data(order.ticker, bid, ask, shares_traded)
 
@@ -151,14 +167,14 @@ end
 function processMarketOrderSale_byfunds(order::MarketOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
-    trade = VL_LimitOrderBook.submit_market_order_byfunds!(eval(ob_expr),SELL_ORDER,order.fill_amount)
+    trade = VL_LimitOrderBook.submit_market_order_byfunds!(eval(ob_expr),SELL_ORDER,order.cash_amount)
     return trade
 end
 
 function processMarketOrderPurchase_byfunds(order::MarketOrder)
     ticker_ob = order.ticker
     ob_expr = Symbol("ob"*"$ticker_ob")
-    trade = VL_LimitOrderBook.submit_market_order_byfunds!(eval(ob_expr),BUY_ORDER,order.fill_amount)
+    trade = VL_LimitOrderBook.submit_market_order_byfunds!(eval(ob_expr),BUY_ORDER,order.cash_amount)
     return trade
 end
 
