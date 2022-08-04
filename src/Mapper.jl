@@ -25,8 +25,7 @@ function init(dbfile)
                 id INTEGER,
                 userid INTEGER,
                 name TEXT,
-                cash REAL,
-                timespicked INTEGER DEFAULT 0
+                cash REAL
             )
         """)
         DBInterface.execute(db, """
@@ -94,8 +93,8 @@ function create!(portfolio::Portfolio)
     portfolio.userid = user.id
     portfolio.id = PORTFOLIO_COUNTER[] += 1
     execute("""
-        INSERT INTO portfolio (id, userid, name, cash, timespicked) VALUES(?, ?, ?, ?, ?)
-    """, (portfolio.id, portfolio.userid, portfolio.name, portfolio.cash, portfolio.timespicked))
+        INSERT INTO portfolio (id, userid, name, cash) VALUES(?, ?, ?, ?)
+    """, (portfolio.id, portfolio.userid, portfolio.name, portfolio.cash))
     id = portfolio.id
     execute("""
         INSERT INTO holdings (portfolio_id, userid, ticker, shares) VALUES (?, ?, ?, ?)
@@ -120,10 +119,9 @@ function update(portfolio)
         UPDATE portfolio
         SET userid = ?,
             name = ?,
-            cash = ?,
-            timespicked = ?
+            cash = ?
         WHERE id = ?
-    """, (portfolio.userid, portfolio.name, portfolio.cash, portfolio.timespicked, portfolio.id))
+    """, (portfolio.userid, portfolio.name, portfolio.cash, portfolio.id))
     # update holdings
     execute("""
         DELETE FROM holdings WHERE portfolio_id = ? AND userid = ?

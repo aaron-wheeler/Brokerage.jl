@@ -18,8 +18,8 @@ mutable struct Portfolio
     id::Int64 # service-managed
     userid::Int64 # service-managed
     name::String # passed by client
-    cash::Float64 # passed by client, TODO: make this BigInt
-    timespicked::Int64 # service-managed
+    cash::Float64 # passed by client
+    # timespicked::Int64 # service-managed
     # holdings::Vector{Int64} # TODO: avoid making this 64-bit
     holdings::Dict{Symbol, Int64} # TODO: make this {Int8, BigInt}
     # ticker::Vector{Int64}
@@ -30,9 +30,9 @@ end
 
 # default constructors for JSON3
 ==(x::Portfolio, y::Portfolio) = x.id == y.id
-Portfolio() = Portfolio(0, 0, "", 0.0, 0, Dict(), Int[0], Int[0])
+Portfolio() = Portfolio(0, 0, "", 0.0, Dict(), Int[0], Int[0])
 # Portfolio() = Portfolio(0, 0, "", 0.0, 0, Int[], Float64[], Int[0], Int[0])
-Portfolio(name, cash, holdings) = Portfolio(0, 0, name, cash, 0, holdings, Int[0], Int[0])
+Portfolio(name, cash, holdings) = Portfolio(0, 0, name, cash, holdings, Int[0], Int[0])
 # Portfolio(name, cash, ticker, shares) = Portfolio(0, 0, name, cash, 0, ticker, shares, Int[0], Int[0])
 StructTypes.StructType(::Type{Portfolio}) = StructTypes.Mutable()
 StructTypes.idproperty(::Type{Portfolio}) = :id # for 'get' function in Mapper; different portfolio rows with the same id # refer to the same portfolio
@@ -97,7 +97,7 @@ MarketOrder(ticker, order_id, order_side, cash_amount, acct_id, byfunds) = Marke
 # StructTypes.StructType(::Type{MarketOrder}) = StructTypes.Mutable()
 # StructTypes.idproperty(::Type{MarketOrder}) = :order_id
 
-mutable struct CancelOrder <: Order
+struct CancelOrder <: Order
     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets
     order_id::Int64 # same order_id of the LimitOrder being canceled
     order_side::String
@@ -109,10 +109,10 @@ end
 # **VL_LimitOrderBook.order_matching line 327 already has fn `cancel_unmatched_market_order!` but it's not exported
 
 # default constructors for JSON3
-==(x::CancelOrder, y::CancelOrder) = x.order_id == y.order_id
-CancelOrder() = CancelOrder(0, 0, "", 0.0, 0)
+# ==(x::CancelOrder, y::CancelOrder) = x.order_id == y.order_id
+# CancelOrder() = CancelOrder(0, 0, "", 0.0, 0)
 # CancelOrder(ticker, order_id, order_side, limit_price, acct_id) = CancelOrder(ticker, order_id, order_side, limit_price, acct_id)
-StructTypes.StructType(::Type{CancelOrder}) = StructTypes.Mutable()
-StructTypes.idproperty(::Type{CancelOrder}) = :order_id
+# StructTypes.StructType(::Type{CancelOrder}) = StructTypes.Mutable()
+# StructTypes.idproperty(::Type{CancelOrder}) = :order_id
 
 end # module

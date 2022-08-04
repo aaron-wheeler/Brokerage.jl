@@ -257,7 +257,7 @@ function placeCancelOrder(obj)
     order = CancelOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.acct_id)
     # send order to OMS layer for fulfillment
     cancelTrade(order) # TODO: integrate @asynch functionality (?)
-    return order  
+    return
 end
 
 # ======================================================================================== #

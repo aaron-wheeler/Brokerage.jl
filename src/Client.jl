@@ -70,7 +70,7 @@ end
 
 function placeLimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id)
     body = (; ticker, order_id, order_side, limit_price, limit_size, acct_id)
-    resp = HTTP.post(string(SERVER[], "/order"), [], JSON3.write(body))
+    resp = HTTP.post(string(SERVER[], "/l_order"), [], JSON3.write(body))
     return # JSON3.read(resp.body, LimitOrder)
 end
 
@@ -83,7 +83,7 @@ end
 function placeCancelOrder(ticker, order_id, order_side, limit_price, acct_id)
     body = (; ticker, order_id, order_side, limit_price, acct_id)
     resp = HTTP.post(string(SERVER[], "/c_order"), [], JSON3.write(body))
-    return JSON3.read(resp.body, CancelOrder)
+    return # JSON3.read(resp.body, CancelOrder)
 end
 
 # ======================================================================================== #
