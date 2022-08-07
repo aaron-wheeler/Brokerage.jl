@@ -227,4 +227,21 @@ function provideLiquidity(order)
     return
 end
 
+# function getActiveOrders(acct_id, ticker)
+#     active_orders = VL_LimitOrderBook.get_acct(ob[ticker], acct_id)
+#     return active_orders    
+# end
+
+function cancelSellQuote(order)
+    canceled_order = VL_LimitOrderBook.cancel_order!(ob[order.ticker],order.order_id,
+                        SELL_ORDER,order.limit_price)
+    return
+end
+
+function cancelBuyQuote(order)
+    canceled_order = VL_LimitOrderBook.cancel_order!(ob[order.ticker],order.order_id,
+                        BUY_ORDER,order.limit_price)
+    return
+end
+
 end # module

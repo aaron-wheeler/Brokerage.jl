@@ -707,4 +707,22 @@ function provideLiquidity(order)
     return
 end
 
+# function getActiveOrders(acct_id, ticker)
+#     active_orders = OMS.getActiveOrders(acct_id, ticker)
+#     return active_orders
+# end
+
+function cancelQuote(order)
+    # navigate order to correct location
+    if order.order_side == "SELL_ORDER"
+        voided_order = OMS.cancelSellQuote(order)
+    else
+        # order.order_side == "BUY_ORDER"
+        voided_order = OMS.cancelBuyQuote(order)
+    end
+    # send confirmation
+    @info "Cancel order completed. $(order.order_side) quote removed from book."
+    return
+end
+
 end # module

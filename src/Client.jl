@@ -123,4 +123,15 @@ function provideLiquidity(ticker, order_id, order_side, limit_price, limit_size,
     return
 end
 
+# function getActiveOrders(acct_id, ticker)
+#     resp = HTTP.get(string(SERVER[], "/active_orders/$acct_id/$ticker"))
+#     return
+# end
+
+function cancelQuote(ticker, order_id, order_side, limit_price, acct_id)
+    body = (; ticker, order_id, order_side, limit_price, acct_id)
+    resp = HTTP.post(string(SERVER[], "/c_liquidity"), [], JSON3.write(body))
+    return
+end
+
 end # module
