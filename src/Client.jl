@@ -1,6 +1,6 @@
 module Client
 
-using HTTP, JSON3, Base64
+using HTTP, JSON3, Base64, VL_LimitOrderBook, AVLTrees
 using ..Model
 
 # server running on same host as client, listening on port 8080
@@ -123,10 +123,20 @@ function provideLiquidity(ticker, order_id, order_side, limit_price, limit_size,
     return
 end
 
-# function getActiveOrders(acct_id, ticker)
-#     resp = HTTP.get(string(SERVER[], "/active_orders/$acct_id/$ticker"))
-#     return
-# end
+function getActiveOrders(acct_id, ticker) # returns an account map of all open orders assigned to account `acct_id`
+    resp = HTTP.get(string(SERVER[], "/active_orders/$acct_id/$ticker"))
+    return JSON3.read(resp.body, AVLTree{Int64,Order{Int64, Float64, Int64, Int64}}) # The account map is implemented as a `Dict` containing `AVLTree`s.
+end
+
+function getActiveSellOrders(acct_id, ticker) # returns vector of all open sell orders assigned to account `acct_id`
+    resp = HTTP.get(string(SERVER[], "/active_sell_orders/$acct_id/$ticker"))
+    return JSON3.read(resp.body, Vector{Tuple{Int64, Order{Int64, Float64, Int64, Int64}}})
+end
+
+function getActiveBuyOrders(acct_id, ticker) # returns vector of all open buy orders assigned to account `acct_id`
+    resp = HTTP.get(string(SERVER[], "/active_buy_orders/$acct_id/$ticker"))
+    return JSON3.read(resp.body, Vector{Tuple{Int64, Order{Int64, Float64, Int64, Int64}}})
+end
 
 function cancelQuote(ticker, order_id, order_side, limit_price, acct_id)
     body = (; ticker, order_id, order_side, limit_price, acct_id)

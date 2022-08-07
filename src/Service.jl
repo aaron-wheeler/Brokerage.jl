@@ -707,10 +707,25 @@ function provideLiquidity(order)
     return
 end
 
-# function getActiveOrders(acct_id, ticker)
-#     active_orders = OMS.getActiveOrders(acct_id, ticker)
-#     return active_orders
-# end
+function getActiveOrders(acct_id, ticker)
+    # collect AVLTree of all active orders
+    active_orders = OMS.getOrderList(acct_id, ticker)
+    return active_orders
+end
+
+function getActiveSellOrders(acct_id, ticker)
+    order_list = OMS.getOrderList(acct_id, ticker)
+    # collect vector of sell orders via negative order id number
+    active_orders = [x for x in order_list if signbit(x[1])]
+    return active_orders
+end
+
+function getActiveBuyOrders(acct_id, ticker)
+    order_list = OMS.getOrderList(acct_id, ticker)
+    # collect vector of buy orders via positive order id number
+    active_orders = [x for x in order_list if !signbit(x[1])]
+    return active_orders
+end
 
 function cancelQuote(order)
     # navigate order to correct location

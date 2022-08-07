@@ -13,20 +13,6 @@ por1 = Client.createPortfolio("Trader 1", 10500.0, Dict(1 => 10, 2 => 12))
 holdings1 = Client.getHoldings(por1)
 cash1 = Client.getCash(por1)
 
-## Order testing
-# ord1 = Client.placeLimitOrder(1,12,"SELL_ORDER",99.0,7,por1)
-# holdings1 = Client.getHoldings(por1)
-# @test holdings1[:1] == 3
-# bid, ask = Client.getBidAsk(1)
-# @test ask == 99.0
-# # crossed order
-# ord2 = Client.placeLimitOrder(1,87,"BUY_ORDER",100.0,7,por1)
-# @test Client.getBidAsk(1)[2] != 99.0
-# holdings1 = Client.getHoldings(por1)
-# @test holdings1[:1] == 10
-
-# # OMS.ob1 # changed order book can only be seen on server side terminal ** (haven't incorporated qoute service yet)
-
 ## Trade update testing
 # Trade ex. 1: limit order sell - market order buy
 ord3 = Client.placeLimitOrder(1,11,"SELL_ORDER",99.0,7,por1)
@@ -107,10 +93,30 @@ n_orders_book = Client.getBidAskOrders(1)
 ord11 = Client.placeMarketOrder(2,24,"SELL_ORDER",1,por1)
 ord12 = Client.placeMarketOrder(2,29,"BUY_ORDER",3,por1)
 
-# ## Fractional share testing
+## Market Maker testing
+Client.provideLiquidity(1,-11,"SELL_ORDER",99.0,7,1)
+active_orders = Client.getActiveOrders(1, 1)
+active_sell_orders = Client.getActiveSellOrders(1, 1)
+active_buy_orders = Client.getActiveBuyOrders(1, 1)
+@test isempty(active_sell_orders) == false
+@test isempty(active_buy_orders) == true
+
+## Fractional share testing
 # ord13 = Client.placeLimitOrder(1,87,"SELL_ORDER",99.0,1.7,por1)
 # ord14 = Client.placeMarketOrder(1,81,"BUY_ORDER",1.1,por1)
 # ord15 = Client.placeMarketOrder(1,81,"SELL_ORDER",0.09,por1)
+
+## Crossed-Order testing
+# ord1 = Client.placeLimitOrder(1,12,"SELL_ORDER",99.0,7,por1)
+# holdings1 = Client.getHoldings(por1)
+# @test holdings1[:1] == 3
+# bid, ask = Client.getBidAsk(1)
+# @test ask == 99.0
+# # crossed order
+# ord2 = Client.placeLimitOrder(1,87,"BUY_ORDER",100.0,7,por1)
+# @test Client.getBidAsk(1)[2] != 99.0
+# holdings1 = Client.getHoldings(por1)
+# @test holdings1[:1] == 10
 
 ## Data collection testing
 # OMS.write_market_data(OMS.ticker_symbol, OMS.tick_time, OMS.tick_bid_prices,

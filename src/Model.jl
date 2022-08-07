@@ -3,9 +3,9 @@ module Model
 import Base: ==
 
 # StructTypes is used by JSON3 to do all of our object serialization
-using StructTypes
+using StructTypes, VL_LimitOrderBook, AVLTrees
 
-export Portfolio, User, LimitOrder, MarketOrder, CancelOrder
+export Portfolio, User, LimitOrder, MarketOrder, CancelOrder, ActiveOrders
 
 #=
 Brokerage uses 'id' to distinguish between multiple portfolios
@@ -114,5 +114,13 @@ end
 # CancelOrder(ticker, order_id, order_side, limit_price, acct_id) = CancelOrder(ticker, order_id, order_side, limit_price, acct_id)
 # StructTypes.StructType(::Type{CancelOrder}) = StructTypes.Mutable()
 # StructTypes.idproperty(::Type{CancelOrder}) = :order_id
+
+# ======================================================================================== #
+
+# Active order constructors and serialization methods for JSON3
+StructTypes.StructType(::Type{AVLTrees.AVLTree{Int64, VL_LimitOrderBook.Order{Int64, Float64, Int64, Int64}}}) = StructTypes.Struct()
+StructTypes.StructType(::Type{AVLTrees.Node{Int64, VL_LimitOrderBook.Order{Int64, Float64, Int64, Int64}}}) = StructTypes.Struct()
+StructTypes.StructType(::Type{VL_LimitOrderBook.Order{Int64, Float64, Int64, Int64}}) = StructTypes.Struct()
+StructTypes.StructType(::Type{VL_LimitOrderBook.OrderSide}) = StructTypes.Struct()
 
 end # module

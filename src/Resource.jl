@@ -75,8 +75,14 @@ HTTP.register!(ROUTER, "GET", "/quote_book_orders/*", getBidAskOrders)
 provideLiquidity(req) = Service.provideLiquidity(JSON3.read(req.body, NamedTuple))
 HTTP.register!(ROUTER, "POST", "/liquidity", provideLiquidity)
 
-# getActiveOrders(req) = Service.getActiveOrders(parse(Int, HTTP.URIs.splitpath(req.target)[2]), parse(Int, HTTP.URIs.splitpath(req.target)[3]))
-# HTTP.register!(ROUTER, "GET", "/active_orders/*/*", getActiveOrders)
+getActiveOrders(req) = Service.getActiveOrders(parse(Int, HTTP.URIs.splitpath(req.target)[2]), parse(Int, HTTP.URIs.splitpath(req.target)[3]))
+HTTP.register!(ROUTER, "GET", "/active_orders/*/*", getActiveOrders)
+
+getActiveSellOrders(req) = Service.getActiveSellOrders(parse(Int, HTTP.URIs.splitpath(req.target)[2]), parse(Int, HTTP.URIs.splitpath(req.target)[3]))
+HTTP.register!(ROUTER, "GET", "/active_sell_orders/*/*", getActiveSellOrders)
+
+getActiveBuyOrders(req) = Service.getActiveBuyOrders(parse(Int, HTTP.URIs.splitpath(req.target)[2]), parse(Int, HTTP.URIs.splitpath(req.target)[3]))
+HTTP.register!(ROUTER, "GET", "/active_buy_orders/*/*", getActiveBuyOrders)
 
 cancelQuote(req) = Service.cancelQuote(JSON3.read(req.body, NamedTuple))
 HTTP.register!(ROUTER, "POST", "/c_liquidity", cancelQuote)
