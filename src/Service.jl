@@ -265,7 +265,7 @@ end
 
 function getMidPrice(ticker)
     bid, ask = OMS.queryBidAsk(ticker)
-    mid_price = (ask + bid) / 2.0
+    mid_price = round(((ask + bid) / 2.0); digits=2)
     return mid_price
 end
 

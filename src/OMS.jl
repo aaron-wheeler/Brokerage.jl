@@ -210,9 +210,6 @@ end
 #----- Market Maker Processing -----#
 
 function provideLiquidity(order)
-    # ticker_ob = order.ticker
-    # ob_expr = Symbol("ob"*"$ticker_ob")
-    # uob_expr = Symbol("uob"*"$ticker_ob")
     if order.order_side == "BUY_ORDER"
         VL_LimitOrderBook.submit_limit_order!(ob[order.ticker], uob[order.ticker],
                         order.order_id, BUY_ORDER, order.limit_price,
