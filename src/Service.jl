@@ -5,6 +5,12 @@ using Dates, ExpiringCaches
 using ..Model, ..Mapper, ..Auth, ..OMS
 # using ..Model, ..NormalizedMapper, ..Auth
 
+# prepare recyclable clearing price estimation vectors
+max_depth = 5
+ask_book_volume = zeros(Int64, max_depth)
+cumsum_ask_book_volume = zeros(Int64, max_depth)
+ask_book_price = zeros(Float64, max_depth)
+
 # ======================================================================================== #
 #----- Account Services -----#
 
@@ -158,19 +164,42 @@ function placeMarketOrder(obj)
     if obj.byfunds == false
         # administer market order by shares
         if obj.order_side == "BUY_ORDER"
+            # estimate clearing price using volume-weighted average price (VWAP)
+            best_ask = (getBidAsk(obj.ticker))[2]
+            estimated_VWAP = best_ask * obj.fill_amount
+            ask_top_volume = sum(
+                pq.total_volume[] for
+                (_, pq) in Base.Iterators.take((OMS.ob[obj.ticker]).ask_orders.book, 1)
+            )
+            # check if more rigorous price clearing estimation needed
+            if ask_top_volume < obj.fill_amount
+                ask_book_volume[1:max_depth] = [
+                    pq.total_volume[] for
+                    (_, pq) in Base.Iterators.take((OMS.ob[obj.ticker]).ask_orders.book, max_depth)
+                ]
+                cumsum!(cumsum_ask_book_volume, ask_book_volume)
+                # estimate clearing price level
+                price_level = findfirst(x -> x ≥ obj.fill_amount, cumsum_ask_book_volume)
+                # throw error if order size cannot be cleared within the first `max_depth` price levels
+                isnothing(price_level) && throw(InsufficientFunds()) # TODO: add method to try again with a bigger max_depth?
+                ask_book_price[1:max_depth] = [
+                    pq.price[] for
+                    (_, pq) in Base.Iterators.take((OMS.ob[obj.ticker]).ask_orders.book, max_depth)
+                ]    
+                estimated_VWAP = sum(ask_book_volume[i] * ask_book_price[i] for i in 1:(price_level-1)) +
+                            (obj.fill_amount - (cumsum(ask_book_volume))[price_level-1])*ask_book_price[price_level] 
+            end
             # check if sufficient funds available
             cash = Mapper.getCash(obj.acct_id)
-            best_ask = (getBidAsk(obj.ticker))[2]
-            estimated_price = best_ask * obj.fill_amount
-            if cash > estimated_price # TODO: Test the functionality here for robustness, asynch & liquidity could break this
+            if cash > estimated_VWAP # TODO: Test the functionality here for robustness, asynch & liquidity could break this
                 # remove cash
-                updated_cash = cash - (estimated_price)
+                updated_cash = cash - (estimated_VWAP)
                 Mapper.update_cash(obj.acct_id, updated_cash)
                 # create and send order to OMS layer for fulfillment
                 # TODO: create and return unique obj.order_id = transaction_id
                 # TODO: add order_id to pendingorders
                 order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
-                processTradeBuy(order; estimated_price = estimated_price) # TODO: integrate @asynch functionality
+                processTradeBuy(order; estimated_price = estimated_VWAP) # TODO: integrate @asynch functionality
                 return
             else
                 throw(InsufficientFunds())            
@@ -294,7 +323,7 @@ end
 
 struct PlacementFailure <: Exception end
 struct OrderInsertionError <: Exception end
-struct LiquidityError <: Exception end
+struct BrokerageEstimationError <: Exception end
 struct OrderNotFound <: Exception end
 
 function processTradeBid(order::LimitOrder)
@@ -420,7 +449,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
         if cash_owed > (cash + estimated_price)
             # TODO: delete from pendingorders and apply `estimated_price` refund
             # TODO: return the matched order(s) back to the LOB
-            throw(LiquidityError("Cash owed exceeds account balance. Order canceled."))
+            throw(BrokerageEstimationError("Cash owed exceeds account balance. Order canceled."))
         else
             # balance cash of buyer
             price_adjustment = cash_owed - estimated_price
@@ -590,7 +619,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0)
         if shares_owed > (shares_held + estimated_shares)
             # TODO: delete from pendingorders and apply `estimated_shares` refund
             # TODO: return the matched order(s) back to the LOB
-            throw(LiquidityError("Shares owed exceeds account holdings. Order canceled."))
+            throw(BrokerageEstimationError("Shares owed exceeds account holdings. Order canceled."))
         else
             # balance shares of seller
             share_adjustment = shares_owed - estimated_shares

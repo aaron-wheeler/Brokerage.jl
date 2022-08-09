@@ -18,8 +18,9 @@ MyLOBType = OrderBook{Int64, Float64, Int64, Int64}
 # define initialization params and methods
 init_acctid = 0
 init_orderid = 0
-Random.seed!(1234)
-randspread() = ceil(-0.05*log(rand()),digits=2)
+Random.seed!(12345)
+randspread_small() = ceil(-0.05*log(rand()),digits=2)
+randspread_large() = ceil(-0.10*log(rand()),digits=2)
 rand_side() = rand([BUY_ORDER,SELL_ORDER])
 
 # Create and populate order book vectors
@@ -31,9 +32,12 @@ for ticker in 1:NUM_ASSETS
     uob_tick = MyUOBType() # Initialize unmatched book process
     # fill book with random limit orders
     for i=1:10
-        # add some limit orders
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread(),rand(5:5:20),init_acctid)
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread(),rand(5:5:20),init_acctid)
+        # add some limit orders (near top of book)
+        submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_small(),rand(5:5:20),init_acctid)
+        submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_small(),rand(5:5:20),init_acctid)
+        # add some limit orders (to increase depth of book)
+        submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_large(),rand(10:10:100),init_acctid)
+        submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_large(),rand(10:10:100),init_acctid)
         if (rand() < 0.1) # and some market orders
             submit_market_order!(ob_tick,rand_side(),rand(10:25:150))
         end
