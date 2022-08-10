@@ -20,7 +20,7 @@ init_acctid = 0
 init_orderid = 0
 Random.seed!(12345)
 randspread_small() = ceil(-0.05*log(rand()),digits=2)
-randspread_large() = ceil(-0.10*log(rand()),digits=2)
+randspread_large() = ceil(-0.20*log(rand()),digits=2)
 rand_side() = rand([BUY_ORDER,SELL_ORDER])
 
 # Create and populate order book vectors
@@ -31,7 +31,7 @@ for ticker in 1:NUM_ASSETS
     ob_tick = MyLOBType() # Initialize empty order book
     uob_tick = MyUOBType() # Initialize unmatched book process
     # fill book with random limit orders
-    for i=1:10
+    for i=1:20
         # add some limit orders (near top of book)
         submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_small(),rand(5:5:20),init_acctid)
         submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_small(),rand(5:5:20),init_acctid)
@@ -79,6 +79,10 @@ function write_market_data(ticker_symbol, tick_time, tick_bid_prices,
     # Save data
     CSV.write("$(savepath)/market_data.csv", market_data)
 end
+
+# Additional data utility functions
+total_ask_price_levels(ticker::Int) = size((ob[ticker]).ask_orders.book)
+total_bid_price_levels(ticker::Int) = size((ob[ticker]).bid_orders.book)
 
 # ======================================================================================== #
 #----- Trade Processing -----#

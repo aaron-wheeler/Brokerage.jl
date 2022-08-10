@@ -103,6 +103,7 @@ end
 
 struct InsufficientFunds <: Exception end
 struct InsufficientShares <: Exception end
+struct InsufficientLiquidity <: Exception end
 
 function placeLimitOrder(obj)
     @assert haskey(obj, :ticker) && !isempty(obj.ticker)
@@ -172,6 +173,8 @@ function placeMarketOrder(obj)
                 (_, pq) in Base.Iterators.take((OMS.ob[obj.ticker]).ask_orders.book, 1)
             )
             # check if more rigorous price clearing estimation needed
+            total_ask_price_levels = size((OMS.ob[obj.ticker]).ask_orders.book)
+            total_ask_price_levels < max_depth && throw(InsufficientLiquidity()) # throw error if insufficient book depth
             if ask_top_volume < obj.fill_amount
                 ask_book_volume[1:max_depth] = [
                     pq.total_volume[] for
