@@ -20,7 +20,8 @@ init_acctid = 0
 init_orderid = 0
 Random.seed!(12345)
 randspread_small() = ceil(-0.05*log(rand()),digits=2)
-randspread_large() = ceil(-0.20*log(rand()),digits=2)
+randspread_mid() = ceil(-0.20*log(rand()),digits=2)
+randspread_large() = ceil(-0.50*log(rand()),digits=2)
 rand_side() = rand([BUY_ORDER,SELL_ORDER])
 
 # Create and populate order book vectors
@@ -35,9 +36,12 @@ for ticker in 1:NUM_ASSETS
         # add some limit orders (near top of book)
         submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_small(),rand(5:5:20),init_acctid)
         submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_small(),rand(5:5:20),init_acctid)
-        # add some limit orders (to increase depth of book)
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_large(),rand(10:10:100),init_acctid)
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_large(),rand(10:10:100),init_acctid)
+        # add some limit orders (to increase mid-range depth of book)
+        submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_mid(),rand(10:10:100),init_acctid)
+        submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_mid(),rand(10:10:100),init_acctid)
+        # add some limit orders (to increase long-range depth of book)
+        submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_large(),rand(50:50:500),init_acctid)
+        submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_large(),rand(50:50:500),init_acctid)
         if (rand() < 0.1) # and some market orders
             submit_market_order!(ob_tick,rand_side(),rand(10:25:150))
         end
@@ -88,16 +92,10 @@ total_bid_price_levels(ticker::Int) = size((ob[ticker]).bid_orders.book)
 #----- Trade Processing -----#
 
 function processLimitOrderSale(order::LimitOrder)
-    # ticker_ob = order.ticker
-    # ob_expr = Symbol("ob"*"$ticker_ob")
-    # uob_expr = Symbol("uob"*"$ticker_ob")
     order_id = order.order_id
     limit_price = order.limit_price
     limit_size = order.limit_size
     acct_id = order.acct_id
-    # trade = VL_LimitOrderBook.submit_limit_order!(eval(ob_expr), eval(uob_expr), order_id,
-    #                     SELL_ORDER, limit_price,
-    #                     limit_size, acct_id)
     trade = VL_LimitOrderBook.submit_limit_order!(ob[order.ticker], uob[order.ticker],
                         order_id, SELL_ORDER, limit_price,
                         limit_size, acct_id)
@@ -105,16 +103,10 @@ function processLimitOrderSale(order::LimitOrder)
 end
 
 function processLimitOrderPurchase(order::LimitOrder)
-    # ticker_ob = order.ticker
-    # ob_expr = Symbol("ob"*"$ticker_ob")
-    # uob_expr = Symbol("uob"*"$ticker_ob")
     order_id = order.order_id
     limit_price = order.limit_price
     limit_size = order.limit_size
     acct_id = order.acct_id
-    # trade = VL_LimitOrderBook.submit_limit_order!(eval(ob_expr), eval(uob_expr), order_id,
-    #                     BUY_ORDER, limit_price,
-    #                     limit_size, acct_id)
     trade = VL_LimitOrderBook.submit_limit_order!(ob[order.ticker], uob[order.ticker],
                         order_id, BUY_ORDER, limit_price,
                         limit_size, acct_id)
@@ -122,63 +114,46 @@ function processLimitOrderPurchase(order::LimitOrder)
 end
 
 function processMarketOrderSale(order::MarketOrder)
-    # ticker_ob = order.ticker
-    # ob_expr = Symbol("ob"*"$ticker_ob")
-    # trade = VL_LimitOrderBook.submit_market_order!(eval(ob_expr),SELL_ORDER,order.share_amount)
     trade = VL_LimitOrderBook.submit_market_order!(ob[order.ticker],SELL_ORDER,
                         order.share_amount)
-    
     # collect market data
     shares_leftover = trade[2]
     shares_traded = order.share_amount - shares_leftover
     bid, ask = VL_LimitOrderBook.best_bid_ask(ob[order.ticker])
     collect_tick_data(order.ticker, bid, ask, shares_traded)
-    
     return trade
 end
 
 function processMarketOrderPurchase(order::MarketOrder)
-    # ticker_ob = order.ticker
-    # ob_expr = Symbol("ob"*"$ticker_ob")
     trade = VL_LimitOrderBook.submit_market_order!(ob[order.ticker],BUY_ORDER,
                         order.share_amount)
-    
     # collect market data
     shares_leftover = trade[2]
     shares_traded = order.share_amount - shares_leftover
     bid, ask = VL_LimitOrderBook.best_bid_ask(ob[order.ticker])
     collect_tick_data(order.ticker, bid, ask, shares_traded)
-
     return trade
 end
 
 function processMarketOrderSale_byfunds(order::MarketOrder)
-    # ticker_ob = order.ticker
-    # ob_expr = Symbol("ob"*"$ticker_ob")
     trade = VL_LimitOrderBook.submit_market_order_byfunds!(ob[order.ticker],SELL_ORDER,
                         order.cash_amount)
     return trade
 end
 
 function processMarketOrderPurchase_byfunds(order::MarketOrder)
-    # ticker_ob = order.ticker
-    # ob_expr = Symbol("ob"*"$ticker_ob")
     trade = VL_LimitOrderBook.submit_market_order_byfunds!(ob[order.ticker],BUY_ORDER,
                         order.cash_amount)
     return trade
 end
 
 function cancelLimitOrderSale(order::CancelOrder)
-    # ticker_ob = order.ticker
-    # ob_expr = Symbol("ob"*"$ticker_ob")
     canceled_order = VL_LimitOrderBook.cancel_order!(ob[order.ticker],order.order_id,
                         SELL_ORDER,order.limit_price)
     return canceled_order
 end
 
 function cancelLimitOrderPurchase(order::CancelOrder)
-    # ticker_ob = order.ticker
-    # ob_expr = Symbol("ob"*"$ticker_ob")
     canceled_order = VL_LimitOrderBook.cancel_order!(ob[order.ticker],order.order_id,
                         BUY_ORDER,order.limit_price)
     return canceled_order
@@ -188,31 +163,24 @@ end
 #----- Quote Processing -----#
 
 function queryBidAsk(ticker)
-    # ob_expr = Symbol("ob"*"$ticker")
     top_book = VL_LimitOrderBook.best_bid_ask(ob[ticker])
     return top_book
 end
 
 function queryBookDepth(ticker)
-    # ob_expr = Symbol("ob"*"$ticker")
     depth = VL_LimitOrderBook.book_depth_info(ob[ticker])
     return depth
 end
 
 function queryBidAskVolume(ticker)
-    # ob_expr = Symbol("ob"*"$ticker")
     book_volume = VL_LimitOrderBook.volume_bid_ask(ob[ticker])
     return book_volume
 end
 
 function queryBidAskOrders(ticker)
-    # ob_expr = Symbol("ob"*"$ticker")
     n_orders_book = VL_LimitOrderBook.n_orders_bid_ask(ob[ticker])
     return n_orders_book
 end
-
-# TODO: Consider implementing the following fn into `getPortfolio` function?
-# VL_LimitOrderBook.get_acct(ob,acct_id) # returns an account map of all open orders assigned to account `acct_id`. The account map is implemented as a `Dict` containing `AVLTree`s.
 
 # ======================================================================================== #
 #----- Market Maker Processing -----#
