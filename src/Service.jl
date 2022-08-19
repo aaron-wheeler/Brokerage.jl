@@ -747,15 +747,23 @@ end
 
 function getActiveSellOrders(acct_id, ticker)
     order_list = OMS.getOrderList(acct_id, ticker)
-    # collect vector of sell orders via negative order id number
-    active_orders = [x for x in order_list if signbit(x[1])]
+    if order_list === nothing
+        active_orders = []
+    else
+        # collect vector of sell orders via negative order id number
+        active_orders = [x for x in order_list if signbit(x[1])]
+    end
     return active_orders
 end
 
 function getActiveBuyOrders(acct_id, ticker)
     order_list = OMS.getOrderList(acct_id, ticker)
-    # collect vector of buy orders via positive order id number
-    active_orders = [x for x in order_list if !signbit(x[1])]
+    if order_list === nothing
+        active_orders = []
+    else
+        # collect vector of buy orders via positive order id number
+        active_orders = [x for x in order_list if !signbit(x[1])]
+    end
     return active_orders
 end
 
