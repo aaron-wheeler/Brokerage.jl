@@ -439,9 +439,7 @@ function processTradeBuy(order::MarketOrder; estimated_price = 0.0)
     # navigate order by share amount or cash amount
     if order.byfunds == false
         # process order by shares
-        trade = OMS.processMarketOrderPurchase(order)
-        order_match_lst = trade[1]
-        shares_leftover = trade[2]
+        order_match_lst, shares_leftover = OMS.processMarketOrderPurchase(order)
         cash = Mapper.getCash(order.acct_id)
         cash_owed = 0.0
         for i in 1:length(order_match_lst)
@@ -552,9 +550,7 @@ function processTradeSell(order::MarketOrder; estimated_shares = 0)
     # navigate order by share amount or cash amount
     if order.byfunds == false
         # process order by share amount
-        trade = OMS.processMarketOrderSale(order)
-        order_match_lst = trade[1]
-        shares_leftover = trade[2]
+        order_match_lst, shares_leftover = OMS.processMarketOrderSale(order)
         earnings = 0.0
         for i in 1:length(order_match_lst)
             matched_order = order_match_lst[i]

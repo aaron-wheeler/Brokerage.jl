@@ -60,24 +60,26 @@ ticker_symbol = Int[]
 tick_time = DateTime[]
 tick_bid_prices = Float64[]
 tick_ask_prices = Float64[]
+tick_last_prices = Float64[]
 tick_trading_volume = Float64[]
 
 # post-simulation data collection methods
-function collect_tick_data(ticker, bid, ask, shares_traded)
+function collect_tick_data(ticker, bid, ask, last_price, shares_traded)
     push!(ticker_symbol, ticker)
     timestamp = Dates.now()
     push!(tick_time, timestamp)
     push!(tick_bid_prices, bid)
     push!(tick_ask_prices, ask)
+    push!(tick_last_prices, last_price)
     push!(tick_trading_volume, shares_traded)
 end
 
 function write_market_data(ticker_symbol, tick_time, tick_bid_prices,
-                            tick_ask_prices, tick_trading_volume)
+                    tick_ask_prices, tick_last_prices, tick_trading_volume)
     # prepare tabular dataset
     market_data = DataFrame(ticker = ticker_symbol, timestamp = tick_time,
                 bid_prices = tick_bid_prices, ask_prices = tick_ask_prices,
-                trading_volume = tick_trading_volume)
+                last_prices = tick_last_prices, trading_volume = tick_trading_volume)
     # Create save path
     savepath = mkpath("../../Data/ABMs/Brokerage")
     # Save data
@@ -117,22 +119,26 @@ function processMarketOrderSale(order::MarketOrder)
     trade = VL_LimitOrderBook.submit_market_order!(ob[order.ticker],SELL_ORDER,
                         order.share_amount)
     # collect market data
+    bid, ask = VL_LimitOrderBook.best_bid_ask(ob[order.ticker])
+    order_match_lst = trade[1]
+    last_price = (last(order_match_lst)).price
     shares_leftover = trade[2]
     shares_traded = order.share_amount - shares_leftover
-    bid, ask = VL_LimitOrderBook.best_bid_ask(ob[order.ticker])
-    collect_tick_data(order.ticker, bid, ask, shares_traded)
-    return trade
+    collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+    return order_match_lst, shares_leftover
 end
 
 function processMarketOrderPurchase(order::MarketOrder)
     trade = VL_LimitOrderBook.submit_market_order!(ob[order.ticker],BUY_ORDER,
                         order.share_amount)
     # collect market data
+    bid, ask = VL_LimitOrderBook.best_bid_ask(ob[order.ticker])
+    order_match_lst = trade[1]
+    last_price = (last(order_match_lst)).price
     shares_leftover = trade[2]
     shares_traded = order.share_amount - shares_leftover
-    bid, ask = VL_LimitOrderBook.best_bid_ask(ob[order.ticker])
-    collect_tick_data(order.ticker, bid, ask, shares_traded)
-    return trade
+    collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+    return order_match_lst, shares_leftover
 end
 
 function processMarketOrderSale_byfunds(order::MarketOrder)
