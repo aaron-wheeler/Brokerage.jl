@@ -4,13 +4,12 @@ module OMS
 using ..Model
 using VL_LimitOrderBook, Dates, CSV, DataFrames, Random
 
-const NUM_ASSETS = 2
+const NUM_ASSETS = Ref{Int64}(0)
 
 # ======================================================================================== #
 #----- LOB INITIALIZATION -----#
 
 # Create (Deterministic) Limit Order Generator
-@info "Connecting to Exchange and initializing Limit Order Book..."
 # define types for Order Size, Price, Transcation ID, Account ID, Order Creation Time, IP Address, Port
 MyUOBType = UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer}
 # define types for Order Size, Price, Order IDs, Account IDs
@@ -27,30 +26,34 @@ rand_side() = rand([BUY_ORDER,SELL_ORDER])
 # Create and populate order book vectors
 ob = Vector{OrderBook{Int64, Float64, Int64, Int64}}()
 uob = Vector{UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer}}()
-for ticker in 1:NUM_ASSETS
-    # Create order book for specific ticker
-    ob_tick = MyLOBType() # Initialize empty order book
-    uob_tick = MyUOBType() # Initialize unmatched book process
-    # fill book with random limit orders
-    for i=1:20
-        # add some limit orders (near top of book)
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_small(),rand(5:5:20),init_acctid)
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_small(),rand(5:5:20),init_acctid)
-        # add some limit orders (to increase mid-range depth of book)
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_mid(),rand(10:10:100),init_acctid)
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_mid(),rand(10:10:100),init_acctid)
-        # add some limit orders (to increase long-range depth of book)
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_large(),rand(50:50:500),init_acctid)
-        submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_large(),rand(50:50:500),init_acctid)
-        if (rand() < 0.1) # and some market orders
-            submit_market_order!(ob_tick,rand_side(),rand(10:25:150))
-        end
-    end
-    push!(ob, ob_tick)
-    push!(uob, uob_tick) 
-end
 
-@info "Exchange Connection successful. Limit Order Book initialization sequence complete."
+# Initialize Limit Order Book(s)
+function init_LOB!(ob, uob)
+    @info "Connecting to Exchange and initializing Limit Order Book..."
+    for ticker in 1:NUM_ASSETS[]
+        # Create order book for specific ticker
+        ob_tick = MyLOBType() # Initialize empty order book
+        uob_tick = MyUOBType() # Initialize unmatched book process
+        # fill book with random limit orders
+        for i=1:20
+            # add some limit orders (near top of book)
+            submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_small(),rand(5:5:20),init_acctid)
+            submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_small(),rand(5:5:20),init_acctid)
+            # add some limit orders (to increase mid-range depth of book)
+            submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_mid(),rand(10:10:100),init_acctid)
+            submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_mid(),rand(10:10:100),init_acctid)
+            # add some limit orders (to increase long-range depth of book)
+            submit_limit_order!(ob_tick,uob_tick,init_orderid,BUY_ORDER,99.0-randspread_large(),rand(50:50:500),init_acctid)
+            submit_limit_order!(ob_tick,uob_tick,init_orderid,SELL_ORDER,99.0+randspread_large(),rand(50:50:500),init_acctid)
+            if (rand() < 0.1) # and some market orders
+                submit_market_order!(ob_tick,rand_side(),rand(10:25:150))
+            end
+        end
+        push!(ob, ob_tick)
+        push!(uob, uob_tick) 
+    end
+    @info "Exchange Connection successful. Limit Order Book initialization sequence complete."
+end
 
 # ======================================================================================== #
 #----- Data Collection -----#
