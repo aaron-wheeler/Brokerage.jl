@@ -72,7 +72,7 @@ tick_trading_volume = Float64[]
 
 # create DataFrame for liquidity providers
 LP_order_vol = DataFrame(n_buy=Int[],n_sell=Int[],buy_vol=Int[],sell_vol=Int[])
-LP_cancel_vol = DataFrame(n_buy=Int[],n_sell=Int[],buy_vol=Int[],sell_vol=Int[])
+LP_cancel_vol = DataFrame(n_cbuy=Int[],n_csell=Int[],cbuy_vol=Int[],csell_vol=Int[])
 
 # post-simulation data collection methods
 function collect_tick_data(ticker, bid, ask, last_price, shares_traded)
@@ -100,6 +100,25 @@ end
 # Additional data utility functions
 total_ask_price_levels(ticker::Int) = size((ob[ticker]).ask_orders.book)
 total_bid_price_levels(ticker::Int) = size((ob[ticker]).bid_orders.book)
+ntotal_price_levels(ticker::Int) = (size((ob[ticker]).bid_orders.book), size((ob[ticker]).ask_orders.book))
+
+function write_LP_data(LP_order_vol, LP_cancel_vol)
+    # prepare price level dataset
+    N = NUM_ASSETS[]
+    price_level_df = DataFrame(n_bid_levels = zeros(Int64,N), n_ask_levels = zeros(Int64,N))
+    for ticker in 1:N
+        last_bpl, last_apl = ntotal_price_levels(ticker)
+        price_level_df[ticker, 1] = last_bpl
+        price_level_df[ticker, 2] = last_apl
+    end
+    # join datasets
+    LP_df = hcat(LP_order_vol, LP_cancel_vol)
+    LP_df = hcat(LP_df, price_level_df)
+    # Create save path
+    savepath = mkpath("../../Data/ABMs/Brokerage")
+    # Save data
+    CSV.write("$(savepath)/LP_data.csv", LP_df)
+end
 
 # ======================================================================================== #
 #----- Trade Processing -----#
@@ -229,16 +248,20 @@ end
 function cancelSellQuote(order)
     canceled_order = VL_LimitOrderBook.cancel_order!(ob[order.ticker],order.order_id,
                         SELL_ORDER,order.limit_price)
-    LP_cancel_vol[order.ticker, 2] += 1
-    LP_cancel_vol[order.ticker, 4] += canceled_order.size
+    if canceled_order !== nothing
+        LP_cancel_vol[order.ticker, 2] += 1
+        LP_cancel_vol[order.ticker, 4] += canceled_order.size
+    end
     return
 end
 
 function cancelBuyQuote(order)
     canceled_order = VL_LimitOrderBook.cancel_order!(ob[order.ticker],order.order_id,
                         BUY_ORDER,order.limit_price)
-    LP_cancel_vol[order.ticker, 1] += 1
-    LP_cancel_vol[order.ticker, 3] += canceled_order.size
+    if canceled_order !== nothing
+        LP_cancel_vol[order.ticker, 1] += 1
+        LP_cancel_vol[order.ticker, 3] += canceled_order.size
+    end
     return
 end
 

@@ -124,3 +124,4 @@ active_buy_orders = Client.getActiveBuyOrders(1, 1)
 ## Data collection testing
 # OMS.write_market_data(OMS.ticker_symbol, OMS.tick_time, OMS.tick_bid_prices,
 #             OMS.tick_ask_prices, OMS.tick_last_prices, OMS.tick_trading_volume)
+# OMS.write_LP_data(OMS.LP_order_vol, OMS.LP_cancel_vol)
