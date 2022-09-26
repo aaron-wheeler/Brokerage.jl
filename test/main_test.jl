@@ -5,7 +5,7 @@ const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/portfolios.sqlite")
 const AUTHFILE = "file://" * joinpath(dirname(pathof(Brokerage)), "../resources/authkeys.json")
 # init LOB
 OMS.NUM_ASSETS[] = 2
-OMS.init_LOB!(OMS.ob, OMS.uob)
+OMS.init_LOB!(OMS.ob, OMS.uob, OMS.LP_order_vol, OMS.LP_cancel_vol)
 
 server = @async Brokerage.run(DBFILE, AUTHFILE)
 

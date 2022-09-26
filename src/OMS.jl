@@ -28,9 +28,10 @@ ob = Vector{OrderBook{Int64, Float64, Int64, Int64}}()
 uob = Vector{UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer}}()
 
 # Initialize Limit Order Book(s)
-function init_LOB!(ob, uob)
+function init_LOB!(ob, uob, LP_order_vol, LP_cancel_vol)
     @info "Connecting to Exchange and initializing Limit Order Book..."
-    for ticker in 1:NUM_ASSETS[]
+    N = NUM_ASSETS[]
+    for ticker in 1:N
         # Create order book for specific ticker
         ob_tick = MyLOBType() # Initialize empty order book
         uob_tick = MyUOBType() # Initialize unmatched book process
@@ -50,7 +51,10 @@ function init_LOB!(ob, uob)
             end
         end
         push!(ob, ob_tick)
-        push!(uob, uob_tick) 
+        push!(uob, uob_tick)
+        # append liquidity provider matrices
+        push!(LP_order_vol, zeros(Int64, 4))
+        push!(LP_cancel_vol, zeros(Int64, 4))
     end
     @info "Exchange Connection successful. Limit Order Book initialization sequence complete."
 end
@@ -58,13 +62,17 @@ end
 # ======================================================================================== #
 #----- Data Collection -----#
 
-# create data collection vectors
+# create data collection vectors for liquidity takers
 ticker_symbol = Int[]
 tick_time = DateTime[]
 tick_bid_prices = Float64[]
 tick_ask_prices = Float64[]
 tick_last_prices = Float64[]
 tick_trading_volume = Float64[]
+
+# create DataFrame for liquidity providers
+LP_order_vol = DataFrame(n_buy=Int[],n_sell=Int[],buy_vol=Int[],sell_vol=Int[])
+LP_cancel_vol = DataFrame(n_buy=Int[],n_sell=Int[],buy_vol=Int[],sell_vol=Int[])
 
 # post-simulation data collection methods
 function collect_tick_data(ticker, bid, ask, last_price, shares_traded)
@@ -199,11 +207,15 @@ function provideLiquidity(order)
         VL_LimitOrderBook.submit_limit_order!(ob[order.ticker], uob[order.ticker],
                         order.order_id, BUY_ORDER, order.limit_price,
                         order.limit_size, order.acct_id)
+        LP_order_vol[order.ticker, 1] += 1
+        LP_order_vol[order.ticker, 3] += order.limit_size
     else
         # order.order_side == "SELL_ORDER"
         VL_LimitOrderBook.submit_limit_order!(ob[order.ticker], uob[order.ticker],
                         order.order_id, SELL_ORDER, order.limit_price,
                         order.limit_size, order.acct_id)
+        LP_order_vol[order.ticker, 2] += 1
+        LP_order_vol[order.ticker, 4] += order.limit_size
     end
  
     return
@@ -217,12 +229,16 @@ end
 function cancelSellQuote(order)
     canceled_order = VL_LimitOrderBook.cancel_order!(ob[order.ticker],order.order_id,
                         SELL_ORDER,order.limit_price)
+    LP_cancel_vol[order.ticker, 2] += 1
+    LP_cancel_vol[order.ticker, 4] += canceled_order.size
     return
 end
 
 function cancelBuyQuote(order)
     canceled_order = VL_LimitOrderBook.cancel_order!(ob[order.ticker],order.order_id,
                         BUY_ORDER,order.limit_price)
+    LP_cancel_vol[order.ticker, 1] += 1
+    LP_cancel_vol[order.ticker, 3] += canceled_order.size
     return
 end
 
