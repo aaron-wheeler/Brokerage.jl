@@ -52,9 +52,10 @@ function init_LOB!(ob, uob, LP_order_vol, LP_cancel_vol)
         end
         push!(ob, ob_tick)
         push!(uob, uob_tick)
-        # append liquidity provider matrices
+        # append liquidity provider data structures
         push!(LP_order_vol, zeros(Int64, 4))
         push!(LP_cancel_vol, zeros(Int64, 4))
+        push!(trade_volume_t, (0))
     end
     @info "Exchange Connection successful. Limit Order Book initialization sequence complete."
 end
@@ -70,9 +71,12 @@ tick_ask_prices = Float64[]
 tick_last_prices = Float64[]
 tick_trading_volume = Float64[]
 
-# create DataFrame for liquidity providers
+# create quote data DataFrame for liquidity providers
 LP_order_vol = DataFrame(n_buy=Int[],n_sell=Int[],buy_vol=Int[],sell_vol=Int[])
 LP_cancel_vol = DataFrame(n_cbuy=Int[],n_csell=Int[],cbuy_vol=Int[],csell_vol=Int[])
+
+# create trade volume Vector for liquidity providers, indexed by ticker
+trade_volume_t = Int[]
 
 # post-simulation data collection methods
 function collect_tick_data(ticker, bid, ask, last_price, shares_traded)
@@ -155,6 +159,7 @@ function processMarketOrderSale(order::MarketOrder)
     shares_leftover = trade[2]
     shares_traded = order.share_amount - shares_leftover
     collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+    trade_volume_t[order.ticker] += shares_traded
     return order_match_lst, shares_leftover
 end
 
@@ -168,6 +173,7 @@ function processMarketOrderPurchase(order::MarketOrder)
     shares_leftover = trade[2]
     shares_traded = order.share_amount - shares_leftover
     collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+    trade_volume_t[order.ticker] += shares_traded
     return order_match_lst, shares_leftover
 end
 
@@ -251,6 +257,7 @@ function hedgeTrade(order)
         shares_leftover = trade[2]
         shares_traded = order.fill_amount - shares_leftover
         collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+        trade_volume_t[order.ticker] += shares_traded
     else
         # order.order_side == "SELL_ORDER"
         trade = VL_LimitOrderBook.submit_market_order!(ob[order.ticker],SELL_ORDER,
@@ -262,6 +269,7 @@ function hedgeTrade(order)
         shares_leftover = trade[2]
         shares_traded = order.fill_amount - shares_leftover
         collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+        trade_volume_t[order.ticker] += shares_traded
     end
  
     return
