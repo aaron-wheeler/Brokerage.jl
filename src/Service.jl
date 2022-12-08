@@ -293,7 +293,7 @@ function placeCancelOrder(obj)
 end
 
 # ======================================================================================== #
-#----- Quote Services -----#
+#----- Order Book Services -----#
 
 function getMidPrice(ticker)
     bid, ask = OMS.queryBidAsk(ticker)
@@ -732,6 +732,13 @@ function provideLiquidity(order)
     liquidity_order = OMS.provideLiquidity(order)
     # send confirmation
     @info "Liquidity order completed. $(order.order_side) quote processed."
+    return
+end
+
+function hedgeTrade(order)
+    hedge_trade = OMS.hedgeTrade(order)
+    # send confirmation
+    @info "Hedge trade completed. $(order.order_side) order processed."
     return
 end
 

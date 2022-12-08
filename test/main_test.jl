@@ -97,12 +97,18 @@ ord11 = Client.placeMarketOrder(2,24,"SELL_ORDER",1,por1)
 ord12 = Client.placeMarketOrder(2,29,"BUY_ORDER",3,por1)
 
 ## Market Maker testing
-Client.provideLiquidity(1,-11,"SELL_ORDER",99.0,7,1)
-active_orders = Client.getActiveOrders(1, 1)
-active_sell_orders = Client.getActiveSellOrders(1, 1)
-active_buy_orders = Client.getActiveBuyOrders(1, 1)
+MM_id = 1
+Client.provideLiquidity(1,-11,"SELL_ORDER",99.0,7,MM_id)
+active_orders = Client.getActiveOrders(MM_id, 1)
+active_sell_orders = Client.getActiveSellOrders(MM_id, 1)
+active_buy_orders = Client.getActiveBuyOrders(MM_id, 1)
 @test isempty(active_sell_orders) == false
 @test isempty(active_buy_orders) == true
+ask_volume_t1 = Client.getBidAskVolume(1)[2]
+Client.hedgeTrade(1,12,"BUY_ORDER",100,MM_id)
+ask_volume_t2 = Client.getBidAskVolume(1)[2]
+ask_vol_diff = ask_volume_t1 - ask_volume_t2
+@test ask_vol_diff == 100
 
 ## Fractional share testing
 # ord13 = Client.placeLimitOrder(1,87,"SELL_ORDER",99.0,1.7,por1)

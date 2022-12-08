@@ -87,7 +87,7 @@ function placeCancelOrder(ticker, order_id, order_side, limit_price, acct_id)
 end
 
 # ======================================================================================== #
-#----- Quote Functionality -----#
+#----- Order Book Functionality -----#
 
 function getMidPrice(ticker)
     resp = HTTP.get(string(SERVER[], "/quote_mid_price/$ticker"))
@@ -120,6 +120,12 @@ end
 function provideLiquidity(ticker, order_id, order_side, limit_price, limit_size, acct_id)
     body = (; ticker, order_id, order_side, limit_price, limit_size, acct_id)
     resp = HTTP.post(string(SERVER[], "/liquidity"), [], JSON3.write(body))
+    return
+end
+
+function hedgeTrade(ticker, order_id, order_side, fill_amount, acct_id)
+    body = (; ticker, order_id, order_side, fill_amount, acct_id)
+    resp = HTTP.post(string(SERVER[], "/hedge"), [], JSON3.write(body))
     return
 end
 

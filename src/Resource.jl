@@ -52,7 +52,7 @@ placeCancelOrder(req) = Service.placeCancelOrder(JSON3.read(req.body, NamedTuple
 HTTP.register!(ROUTER, "POST", "/c_order", placeCancelOrder)
 
 # ======================================================================================== #
-#----- QUOTE ROUTING -----#
+#----- ORDER BOOK ROUTING -----#
 
 getMidPrice(req) = Service.getMidPrice(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
 HTTP.register!(ROUTER, "GET", "/quote_mid_price/*", getMidPrice)
@@ -75,6 +75,9 @@ HTTP.register!(ROUTER, "GET", "/quote_book_orders/*", getBidAskOrders)
 provideLiquidity(req) = Service.provideLiquidity(JSON3.read(req.body, NamedTuple))
 HTTP.register!(ROUTER, "POST", "/liquidity", provideLiquidity)
 
+hedgeTrade(req) = Service.hedgeTrade(JSON3.read(req.body, NamedTuple))
+HTTP.register!(ROUTER, "POST", "/hedge", hedgeTrade)
+
 getActiveOrders(req) = Service.getActiveOrders(parse(Int, HTTP.URIs.splitpath(req.target)[2]), parse(Int, HTTP.URIs.splitpath(req.target)[3]))
 HTTP.register!(ROUTER, "GET", "/active_orders/*/*", getActiveOrders)
 
@@ -91,7 +94,7 @@ HTTP.register!(ROUTER, "POST", "/c_liquidity", cancelQuote)
 
 # uses 'withcontext' function from Contexts.jl
 # passes in 'User' function from Auth.jl
-# if User is valid (authenticated) then this will work and use can use original requestHandler functions 
+# if User is valid (authenticated) then this will work and we can use original requestHandler functions 
 function contextHandler(req)
     withcontext(User(req)) do
         HTTP.Response(200, JSON3.write(ROUTER(req)))

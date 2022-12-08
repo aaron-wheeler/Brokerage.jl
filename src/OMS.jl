@@ -196,7 +196,7 @@ function cancelLimitOrderPurchase(order::CancelOrder)
 end
 
 # ======================================================================================== #
-#----- Quote Processing -----#
+#----- Order Book Processing -----#
 
 function queryBidAsk(ticker)
     top_book = VL_LimitOrderBook.best_bid_ask(ob[ticker])
@@ -235,6 +235,33 @@ function provideLiquidity(order)
                         order.limit_size, order.acct_id)
         LP_order_vol[order.ticker, 2] += 1
         LP_order_vol[order.ticker, 4] += order.limit_size
+    end
+ 
+    return
+end
+
+function hedgeTrade(order)
+    if order.order_side == "BUY_ORDER"
+        trade = VL_LimitOrderBook.submit_market_order!(ob[order.ticker],BUY_ORDER,
+                        order.fill_amount)
+        # collect market data
+        bid, ask = VL_LimitOrderBook.best_bid_ask(ob[order.ticker])
+        order_match_lst = trade[1]
+        last_price = (last(order_match_lst)).price
+        shares_leftover = trade[2]
+        shares_traded = order.fill_amount - shares_leftover
+        collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+    else
+        # order.order_side == "SELL_ORDER"
+        trade = VL_LimitOrderBook.submit_market_order!(ob[order.ticker],SELL_ORDER,
+                        order.fill_amount)
+        # collect market data
+        bid, ask = VL_LimitOrderBook.best_bid_ask(ob[order.ticker])
+        order_match_lst = trade[1]
+        last_price = (last(order_match_lst)).price
+        shares_leftover = trade[2]
+        shares_traded = order.fill_amount - shares_leftover
+        collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
     end
  
     return
