@@ -55,7 +55,7 @@ function init_LOB!(ob, uob, LP_order_vol, LP_cancel_vol, trade_volume_t)
         # append liquidity provider data structures
         push!(LP_order_vol, zeros(Int64, 4))
         push!(LP_cancel_vol, zeros(Int64, 4))
-        push!(trade_volume_t, (0))
+        push!(trade_volume_t, 0)
     end
     @info "Exchange Connection successful. Limit Order Book initialization sequence complete."
 end
@@ -273,6 +273,11 @@ function hedgeTrade(order)
     end
  
     return
+end
+
+function queryTradeVolume(ticker)
+    trade_volume = trade_volume_t[ticker]
+    return trade_volume
 end
 
 function getOrderList(acct_id, ticker)

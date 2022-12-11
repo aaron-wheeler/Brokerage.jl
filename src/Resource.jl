@@ -78,6 +78,9 @@ HTTP.register!(ROUTER, "POST", "/liquidity", provideLiquidity)
 hedgeTrade(req) = Service.hedgeTrade(JSON3.read(req.body, NamedTuple))
 HTTP.register!(ROUTER, "POST", "/hedge", hedgeTrade)
 
+getTradeVolume(req) = Service.getTradeVolume(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
+HTTP.register!(ROUTER, "GET", "/trade_volume/*", getTradeVolume)
+
 getActiveOrders(req) = Service.getActiveOrders(parse(Int, HTTP.URIs.splitpath(req.target)[2]), parse(Int, HTTP.URIs.splitpath(req.target)[3]))
 HTTP.register!(ROUTER, "GET", "/active_orders/*/*", getActiveOrders)
 

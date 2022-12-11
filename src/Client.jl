@@ -129,6 +129,11 @@ function hedgeTrade(ticker, order_id, order_side, fill_amount, acct_id)
     return
 end
 
+function getTradeVolume(ticker) # returns scalar value of the current total trading volume for a ticker
+    resp = HTTP.get(string(SERVER[], "/trade_volume/$ticker"))
+    return JSON3.read(resp.body, Int64) # this type must match the one specified for order sizes in OMS layer
+end
+
 function getActiveOrders(acct_id, ticker) # returns an account map of all open orders assigned to account `acct_id`
     resp = HTTP.get(string(SERVER[], "/active_orders/$acct_id/$ticker"))
     return JSON3.read(resp.body, AVLTree{Int64,Order{Int64, Float64, Int64, Int64}}) # The account map is implemented as a `Dict` containing `AVLTree`s.

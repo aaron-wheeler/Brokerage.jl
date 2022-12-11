@@ -742,6 +742,11 @@ function hedgeTrade(order)
     return
 end
 
+function getTradeVolume(ticker)
+    trade_volume = OMS.queryTradeVolume(ticker)
+    return trade_volume
+end
+
 function getActiveOrders(acct_id, ticker)
     # collect AVLTree of all active orders
     active_orders = OMS.getOrderList(acct_id, ticker)

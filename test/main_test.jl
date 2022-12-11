@@ -110,6 +110,7 @@ ask_volume_t2 = Client.getBidAskVolume(1)[2]
 ask_vol_diff = ask_volume_t1 - ask_volume_t2
 @test ask_vol_diff == 100
 @test OMS.trade_volume_t[1] == 115
+@test OMS.trade_volume_t[1] == Client.getTradeVolume(1)
 
 ## Fractional share testing
 # ord13 = Client.placeLimitOrder(1,87,"SELL_ORDER",99.0,1.7,por1)
