@@ -28,7 +28,7 @@ ob = Vector{OrderBook{Int64, Float64, Int64, Int64}}()
 uob = Vector{UnmatchedOrderBook{Int64, Float64, Int64, Int64, DateTime, String, Integer}}()
 
 # Initialize Limit Order Book(s)
-function init_LOB!(ob, uob, LP_order_vol, LP_cancel_vol)
+function init_LOB!(ob, uob, LP_order_vol, LP_cancel_vol, trade_volume_t)
     @info "Connecting to Exchange and initializing Limit Order Book..."
     N = NUM_ASSETS[]
     for ticker in 1:N

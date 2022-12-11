@@ -2,8 +2,8 @@ using Brokerage, Dates, Sockets
 
 const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/portfolio.sqlite")
 const AUTHFILE = "file://" * joinpath(dirname(pathof(Brokerage)), "../resources/authkeys.json")
-OMS.NUM_ASSETS[] = 3
-OMS.init_LOB!(OMS.ob, OMS.uob, OMS.LP_order_vol, OMS.LP_cancel_vol)
+OMS.NUM_ASSETS[] = 1
+OMS.init_LOB!(OMS.ob, OMS.uob, OMS.LP_order_vol, OMS.LP_cancel_vol, OMS.trade_volume_t)
 
 server = @async Brokerage.remote_run(DBFILE, AUTHFILE)
     
