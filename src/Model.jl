@@ -3,7 +3,7 @@ module Model
 import Base: ==
 
 # StructTypes is used by JSON3 to do all of our object serialization
-using StructTypes, VL_LimitOrderBook, AVLTrees
+using StructTypes, VLLimitOrderBook, AVLTrees
 
 export Portfolio, User, LimitOrder, MarketOrder, CancelOrder, ActiveOrders
 
@@ -105,8 +105,8 @@ struct CancelOrder <: Order
     acct_id::Int64 # same id as portfolio.id
 end
 # CancelOrder only applies to limit orders
-# TODO (low-priority): Add functionality to VL_LimitOrderBook to support canceling unmatched market orders (in case of no liquidity event)
-# **VL_LimitOrderBook.order_matching line 327 already has fn `cancel_unmatched_market_order!` but it's not exported
+# TODO (low-priority): Add functionality to VLLimitOrderBook to support canceling unmatched market orders (in case of no liquidity event)
+# **VLLimitOrderBook.order_matching line 327 already has fn `cancel_unmatched_market_order!` but it's not exported
 
 # default constructors for JSON3
 # ==(x::CancelOrder, y::CancelOrder) = x.order_id == y.order_id
@@ -118,9 +118,9 @@ end
 # ======================================================================================== #
 
 # Active order constructors and serialization methods for JSON3
-StructTypes.StructType(::Type{AVLTrees.AVLTree{Int64, VL_LimitOrderBook.Order{Int64, Float64, Int64, Int64}}}) = StructTypes.Struct()
-StructTypes.StructType(::Type{AVLTrees.Node{Int64, VL_LimitOrderBook.Order{Int64, Float64, Int64, Int64}}}) = StructTypes.Struct()
-StructTypes.StructType(::Type{VL_LimitOrderBook.Order{Int64, Float64, Int64, Int64}}) = StructTypes.Struct()
-StructTypes.StructType(::Type{VL_LimitOrderBook.OrderSide}) = StructTypes.Struct()
+StructTypes.StructType(::Type{AVLTrees.AVLTree{Int64, VLLimitOrderBook.Order{Int64, Float64, Int64, Int64}}}) = StructTypes.Struct()
+StructTypes.StructType(::Type{AVLTrees.Node{Int64, VLLimitOrderBook.Order{Int64, Float64, Int64, Int64}}}) = StructTypes.Struct()
+StructTypes.StructType(::Type{VLLimitOrderBook.Order{Int64, Float64, Int64, Int64}}) = StructTypes.Struct()
+StructTypes.StructType(::Type{VLLimitOrderBook.OrderSide}) = StructTypes.Struct()
 
 end # module

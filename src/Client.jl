@@ -1,6 +1,6 @@
 module Client
 
-using HTTP, JSON3, Base64, VL_LimitOrderBook, AVLTrees
+using HTTP, JSON3, Base64, VLLimitOrderBook, AVLTrees
 using ..Model
 
 # server running on same host as client, listening on port 8080
