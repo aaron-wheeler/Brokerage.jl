@@ -68,14 +68,14 @@ end
 # ======================================================================================== #
 #----- Order Functionality -----#
 
-function placeLimitOrder(ticker, order_id, order_side, limit_price, limit_size, acct_id)
-    body = (; ticker, order_id, order_side, limit_price, limit_size, acct_id)
+function placeLimitOrder(ticker, order_side, limit_price, limit_size, acct_id)
+    body = (; ticker, order_side, limit_price, limit_size, acct_id)
     resp = HTTP.post(string(SERVER[], "/l_order"), [], JSON3.write(body))
     return # JSON3.read(resp.body, LimitOrder)
 end
 
-function placeMarketOrder(ticker, order_id, order_side, fill_amount, acct_id; byfunds = false)
-    body = (; ticker, order_id, order_side, fill_amount, acct_id, byfunds)
+function placeMarketOrder(ticker, order_side, fill_amount, acct_id; byfunds = false)
+    body = (; ticker, order_side, fill_amount, acct_id, byfunds)
     resp = HTTP.post(string(SERVER[], "/m_order"), [], JSON3.write(body))
     return # JSON3.read(resp.body, MarketOrder)
 end
@@ -122,14 +122,14 @@ end
 # ======================================================================================== #
 #----- Market Maker Functionality -----#
 
-function provideLiquidity(ticker, order_id, order_side, limit_price, limit_size, acct_id)
-    body = (; ticker, order_id, order_side, limit_price, limit_size, acct_id)
+function provideLiquidity(ticker, order_side, limit_price, limit_size, acct_id)
+    body = (; ticker, order_side, limit_price, limit_size, acct_id)
     resp = HTTP.post(string(SERVER[], "/liquidity"), [], JSON3.write(body))
     return
 end
 
-function hedgeTrade(ticker, order_id, order_side, fill_amount, acct_id)
-    body = (; ticker, order_id, order_side, fill_amount, acct_id)
+function hedgeTrade(ticker, order_side, fill_amount, acct_id)
+    body = (; ticker, order_side, fill_amount, acct_id)
     resp = HTTP.post(string(SERVER[], "/hedge"), [], JSON3.write(body))
     return
 end

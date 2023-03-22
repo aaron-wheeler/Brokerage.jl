@@ -6,6 +6,7 @@ using VLLimitOrderBook, Dates, CSV, DataFrames, Random, DataStructures
 
 const NUM_ASSETS = Ref{Int64}(0)
 const PRICE_BUFFER_CAPACITY = Ref{Int64}(0)
+const ORDER_ID_COUNTER = Ref{Int64}(0)
 
 # ======================================================================================== #
 #----- LOB INITIALIZATION -----#
@@ -130,7 +131,7 @@ end
 #----- Trade Processing -----#
 
 function processLimitOrderSale(order::LimitOrder)
-    order_id = order.order_id
+    order_id = (ORDER_ID_COUNTER[] += 1) * -1
     limit_price = order.limit_price
     limit_size = order.limit_size
     acct_id = order.acct_id
@@ -141,7 +142,7 @@ function processLimitOrderSale(order::LimitOrder)
 end
 
 function processLimitOrderPurchase(order::LimitOrder)
-    order_id = order.order_id
+    order_id = ORDER_ID_COUNTER[] += 1
     limit_price = order.limit_price
     limit_size = order.limit_size
     acct_id = order.acct_id
@@ -262,15 +263,17 @@ end
 
 function provideLiquidity(order)
     if order.order_side == "BUY_ORDER"
+        order_id = ORDER_ID_COUNTER[] += 1
         VLLimitOrderBook.submit_limit_order!(ob[order.ticker],
-                        order.order_id, BUY_ORDER, order.limit_price,
+                        order_id, BUY_ORDER, order.limit_price,
                         order.limit_size, order.acct_id)
         LP_order_vol[order.ticker, 1] += 1
         LP_order_vol[order.ticker, 3] += order.limit_size
     else
         # order.order_side == "SELL_ORDER"
+        order_id = (ORDER_ID_COUNTER[] += 1) * -1
         VLLimitOrderBook.submit_limit_order!(ob[order.ticker],
-                        order.order_id, SELL_ORDER, order.limit_price,
+                        order_id, SELL_ORDER, order.limit_price,
                         order.limit_size, order.acct_id)
         LP_order_vol[order.ticker, 2] += 1
         LP_order_vol[order.ticker, 4] += order.limit_size

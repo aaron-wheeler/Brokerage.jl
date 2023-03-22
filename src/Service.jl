@@ -107,7 +107,6 @@ struct InsufficientLiquidity <: Exception end
 
 function placeLimitOrder(obj)
     @assert haskey(obj, :ticker) && !isempty(obj.ticker)
-    @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: make this service-managed
     @assert haskey(obj, :order_side) && !isempty(obj.order_side)
     @assert haskey(obj, :limit_price) && obj.limit_price > zero(obj.limit_price) 
     @assert haskey(obj, :limit_size) && obj.limit_size > zero(obj.limit_size) 
@@ -121,9 +120,7 @@ function placeLimitOrder(obj)
             updated_cash = cash - (obj.limit_price * obj.limit_size)
             Mapper.update_cash(obj.acct_id, updated_cash)
             # create and send order to OMS layer for fulfillment
-            # TODO: create and return unique obj.order_id = transaction_id
-            # TODO: add order_id to pendingorders
-            order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
+            order = LimitOrder(obj.ticker, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
             processTradeBid(order) # TODO: integrate @asynch functionality
             return # return order.order_id?
         else
@@ -144,9 +141,7 @@ function placeLimitOrder(obj)
             updated_holdings = merge(holdings, new_holdings)
             Mapper.update_holdings(obj.acct_id, updated_holdings)
             # create and send order to OMS layer for fulfillment
-            # TODO: create and return unique obj.order_id = transaction_id
-            # TODO: add order_id to pendingorders
-            order = LimitOrder(obj.ticker, obj.order_id, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
+            order = LimitOrder(obj.ticker, obj.order_side, obj.limit_price, obj.limit_size, obj.acct_id)
             processTradeAsk(order) # TODO: integrate @asynch functionality
             return # return order.order_id?
         else
@@ -157,7 +152,6 @@ end
 
 function placeMarketOrder(obj)
     @assert haskey(obj, :ticker) && !isempty(obj.ticker)
-    @assert haskey(obj, :order_id) && !isempty(obj.order_id) # TODO: make this service-managed
     @assert haskey(obj, :order_side) && !isempty(obj.order_side)
     @assert haskey(obj, :fill_amount) && obj.fill_amount > zero(obj.fill_amount) 
     @assert haskey(obj, :acct_id) && !isempty(obj.acct_id)
@@ -199,9 +193,7 @@ function placeMarketOrder(obj)
                 updated_cash = cash - (estimated_VWAP)
                 Mapper.update_cash(obj.acct_id, updated_cash)
                 # create and send order to OMS layer for fulfillment
-                # TODO: create and return unique obj.order_id = transaction_id
-                # TODO: add order_id to pendingorders
-                order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
+                order = MarketOrder(obj.ticker, obj.order_side, obj.fill_amount, obj.acct_id)
                 processTradeBuy(order; estimated_price = estimated_VWAP) # TODO: integrate @asynch functionality
                 return
             else
@@ -222,9 +214,7 @@ function placeMarketOrder(obj)
                 updated_holdings = merge(holdings, new_holdings)
                 Mapper.update_holdings(obj.acct_id, updated_holdings)
                 # create and send order to OMS layer for fulfillment
-                # TODO: create and return unique obj.order_id = transaction_id
-                # TODO: add order_id to pendingorders
-                order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id)
+                order = MarketOrder(obj.ticker, obj.order_side, obj.fill_amount, obj.acct_id)
                 processTradeSell(order) # TODO: integrate @asynch functionality
                 return
             else
@@ -241,9 +231,7 @@ function placeMarketOrder(obj)
                 updated_cash = cash - (obj.fill_amount)
                 Mapper.update_cash(obj.acct_id, updated_cash)
                 # create and send order to OMS layer for fulfillment
-                # TODO: create and return unique obj.order_id = transaction_id
-                # TODO: add order_id to pendingorders
-                order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
+                order = MarketOrder(obj.ticker, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
                 processTradeBuy(order) # TODO: integrate @asynch functionality
                 return
             else
@@ -267,9 +255,7 @@ function placeMarketOrder(obj)
                 updated_holdings = merge(holdings, new_holdings)
                 Mapper.update_holdings(obj.acct_id, updated_holdings)
                 # create and send order to OMS layer for fulfillment
-                # TODO: create and return unique obj.order_id = transaction_id
-                # TODO: add order_id to pendingorders
-                order = MarketOrder(obj.ticker, obj.order_id, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
+                order = MarketOrder(obj.ticker, obj.order_side, obj.fill_amount, obj.acct_id, obj.byfunds)
                 processTradeSell(order; estimated_shares = estimated_shares) # TODO: integrate @asynch functionality
                 return
             else

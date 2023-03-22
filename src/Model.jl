@@ -56,7 +56,6 @@ abstract type Order end
 
 struct LimitOrder <: Order
     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets
-    order_id::Int64 # TODO: make this service-managed
     order_side::String
     limit_price::Float64
     limit_size::Int64
@@ -72,7 +71,6 @@ end # TODO: create field for fill_mode
 
 struct MarketOrder <: Order
     ticker::Int8 # 8-bit -> up to 127 assets, change to 16-bit for 32767 assets
-    order_id::Int64 # service-managed; Do we need this?**
     order_side::String
     share_amount::Int64
     cash_amount::Float64
@@ -88,9 +86,9 @@ end
 # MarketOrder(ticker::Int8, order_id::Int64, order_side::String, acct_id::Int64, funds::Float64) = MarketOrder(ticker, order_id, order_side, 0.0, acct_id, funds)
 
 # invest by shares or funds depending on `byfunds` field (default = by shares)
-MarketOrder(ticker, order_id, order_side, share_amount, acct_id) = MarketOrder(ticker, order_id, order_side, share_amount, 0.0, acct_id, false)
+MarketOrder(ticker, order_side, share_amount, acct_id) = MarketOrder(ticker, order_side, share_amount, 0.0, acct_id, false)
 # MarketOrder(ticker::Int64, order_id::Int64, order_side::String, share_amount::Int64, acct_id::Int64) = MarketOrder(ticker, order_id, order_side, share_amount, 0.0, acct_id, false)
-MarketOrder(ticker, order_id, order_side, cash_amount, acct_id, byfunds) = MarketOrder(ticker, order_id, order_side, 0, cash_amount, acct_id, byfunds)
+MarketOrder(ticker, order_side, cash_amount, acct_id, byfunds) = MarketOrder(ticker, order_side, 0, cash_amount, acct_id, byfunds)
 # MarketOrder(ticker::Int64, order_id::Int64, order_side::String, cash_amount::Float64, acct_id::Int64, byfunds::Bool) = MarketOrder(ticker, order_id, order_side, 0, cash_amount, acct_id, byfunds)
 
 # MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds) = MarketOrder(ticker, order_id, order_side, fill_amount, acct_id, byfunds)
@@ -105,8 +103,6 @@ struct CancelOrder <: Order
     acct_id::Int64 # same id as portfolio.id
 end
 # CancelOrder only applies to limit orders
-# TODO (low-priority): Add functionality to VLLimitOrderBook to support canceling unmatched market orders (in case of no liquidity event)
-# **VLLimitOrderBook.order_matching line 327 already has fn `cancel_unmatched_market_order!` but it's not exported
 
 # default constructors for JSON3
 # ==(x::CancelOrder, y::CancelOrder) = x.order_id == y.order_id
