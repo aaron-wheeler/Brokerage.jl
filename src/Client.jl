@@ -114,6 +114,11 @@ function getBidAskOrders(ticker) # returns tuple of total number of orders on ea
     return JSON3.read(resp.body, Tuple{Int32, Int32}) # Int32 as given by VL_LimitOrderBook
 end
 
+function getPriceSeries(ticker) # returns price series vector
+    resp = HTTP.get(string(SERVER[], "/price_history/$ticker"))
+    return JSON3.read(resp.body, Vector{Float64})
+end
+
 # ======================================================================================== #
 #----- Market Maker Functionality -----#
 

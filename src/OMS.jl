@@ -2,9 +2,10 @@ module OMS
 # Order Management Systems (OMS) - order processing and interface with Exchange service layer
 
 using ..Model
-using VLLimitOrderBook, Dates, CSV, DataFrames, Random
+using VLLimitOrderBook, Dates, CSV, DataFrames, Random, DataStructures
 
 const NUM_ASSETS = Ref{Int64}(0)
+const PRICE_BUFFER_CAPACITY = Ref{Int64}(0)
 
 # ======================================================================================== #
 #----- LOB INITIALIZATION -----#
@@ -25,7 +26,7 @@ rand_side() = rand([BUY_ORDER,SELL_ORDER])
 ob = Vector{OrderBook{Int64, Float64, Int64, Int64}}()
 
 # Initialize Limit Order Book(s)
-function init_LOB!(ob, LP_order_vol, LP_cancel_vol, trade_volume_t)
+function init_LOB!(ob, LP_order_vol, LP_cancel_vol, trade_volume_t, price_buffer)
     @info "Connecting to Exchange and initializing Limit Order Book..."
     N = NUM_ASSETS[]
     for ticker in 1:N
@@ -51,6 +52,9 @@ function init_LOB!(ob, LP_order_vol, LP_cancel_vol, trade_volume_t)
         push!(LP_order_vol, zeros(Int64, 4))
         push!(LP_cancel_vol, zeros(Int64, 4))
         push!(trade_volume_t, 0)
+        # create and store circular buffer for specific ticker
+        price_buffer_tick = CircularBuffer{Float64}(PRICE_BUFFER_CAPACITY[])
+        push!(price_buffer, price_buffer_tick)
     end
     @info "Exchange Connection successful. Limit Order Book initialization sequence complete."
 end
@@ -58,7 +62,7 @@ end
 # ======================================================================================== #
 #----- Data Collection -----#
 
-# create data collection vectors for liquidity takers
+# create data collection vectors for recording liquidity taker activity
 ticker_symbol = Int[]
 tick_time = DateTime[]
 tick_bid_prices = Float64[]
@@ -66,12 +70,15 @@ tick_ask_prices = Float64[]
 tick_last_prices = Float64[]
 tick_trading_volume = Float64[]
 
-# create quote data DataFrame for liquidity providers
+# create quote data DataFrame for recording liquidity provider activity
 LP_order_vol = DataFrame(n_buy=Int[],n_sell=Int[],buy_vol=Int[],sell_vol=Int[])
 LP_cancel_vol = DataFrame(n_cbuy=Int[],n_csell=Int[],cbuy_vol=Int[],csell_vol=Int[])
 
-# create trade volume Vector for liquidity providers, indexed by ticker
+# create trade volume Vector for liquidity providers (indexed by ticker)
 trade_volume_t = Int[]
+
+# create dynamic price series vector (indexed by ticker)
+price_buffer = Vector{CircularBuffer{Float64}}()
 
 # post-simulation data collection methods
 function collect_tick_data(ticker, bid, ask, last_price, shares_traded)
@@ -155,6 +162,7 @@ function processMarketOrderSale(order::MarketOrder)
     shares_traded = order.share_amount - shares_leftover
     collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
     trade_volume_t[order.ticker] += shares_traded
+    pushfirst!(price_buffer[order.ticker], last_price)
     return order_match_lst, shares_leftover
 end
 
@@ -169,18 +177,43 @@ function processMarketOrderPurchase(order::MarketOrder)
     shares_traded = order.share_amount - shares_leftover
     collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
     trade_volume_t[order.ticker] += shares_traded
+    pushfirst!(price_buffer[order.ticker], last_price)
     return order_match_lst, shares_leftover
 end
 
 function processMarketOrderSale_byfunds(order::MarketOrder)
     trade = VLLimitOrderBook.submit_market_order_byfunds!(ob[order.ticker],SELL_ORDER,
                         order.cash_amount)
+    # collect market data
+    bid, ask = VLLimitOrderBook.best_bid_ask(ob[order.ticker])
+    order_match_lst = trade[1]
+    last_price = (last(order_match_lst)).price
+    shares_traded = 0
+    for i in eachindex(order_match_lst)
+        matched_order = order_match_lst[i]
+        shares_traded += matched_order.size
+    end
+    collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+    trade_volume_t[order.ticker] += shares_traded
+    pushfirst!(price_buffer[order.ticker], last_price)
     return trade
 end
 
 function processMarketOrderPurchase_byfunds(order::MarketOrder)
     trade = VLLimitOrderBook.submit_market_order_byfunds!(ob[order.ticker],BUY_ORDER,
                         order.cash_amount)
+    # collect market data
+    bid, ask = VLLimitOrderBook.best_bid_ask(ob[order.ticker])
+    order_match_lst = trade[1]
+    last_price = (last(order_match_lst)).price
+    shares_traded = 0
+    for i in eachindex(order_match_lst)
+        matched_order = order_match_lst[i]
+        shares_traded += matched_order.size
+    end
+    collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+    trade_volume_t[order.ticker] += shares_traded
+    pushfirst!(price_buffer[order.ticker], last_price)
     return trade
 end
 
@@ -219,6 +252,11 @@ function queryBidAskOrders(ticker)
     return n_orders_book
 end
 
+function queryPriceSeries(ticker)
+    price_list = convert(Vector{Float64}, price_buffer[ticker])
+    return price_list
+end
+
 # ======================================================================================== #
 #----- Market Maker Processing -----#
 
@@ -253,6 +291,7 @@ function hedgeTrade(order)
         shares_traded = order.fill_amount - shares_leftover
         collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
         trade_volume_t[order.ticker] += shares_traded
+        pushfirst!(price_buffer[order.ticker], last_price)
     else
         # order.order_side == "SELL_ORDER"
         trade = VLLimitOrderBook.submit_market_order!(ob[order.ticker],SELL_ORDER,
@@ -265,6 +304,7 @@ function hedgeTrade(order)
         shares_traded = order.fill_amount - shares_leftover
         collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
         trade_volume_t[order.ticker] += shares_traded
+        pushfirst!(price_buffer[order.ticker], last_price)
     end
  
     return

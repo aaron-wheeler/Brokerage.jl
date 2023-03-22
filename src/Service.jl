@@ -321,6 +321,11 @@ function getBidAskOrders(ticker)
     return n_orders_book
 end
 
+function getPriceSeries(ticker)
+    price_list = OMS.queryPriceSeries(ticker)
+    return price_list
+end
+
 # ======================================================================================== #
 #----- Trade Services -----#
 

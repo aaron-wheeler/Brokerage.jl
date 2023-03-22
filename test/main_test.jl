@@ -5,7 +5,8 @@ const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/portfolios.sqlite")
 const AUTHFILE = "file://" * joinpath(dirname(pathof(Brokerage)), "../resources/authkeys.json")
 # init LOB
 OMS.NUM_ASSETS[] = 2
-OMS.init_LOB!(OMS.ob, OMS.LP_order_vol, OMS.LP_cancel_vol, OMS.trade_volume_t)
+OMS.PRICE_BUFFER_CAPACITY[] = 100
+OMS.init_LOB!(OMS.ob, OMS.LP_order_vol, OMS.LP_cancel_vol, OMS.trade_volume_t, OMS.price_buffer)
 
 server = @async Brokerage.run(DBFILE, AUTHFILE)
 
@@ -96,6 +97,10 @@ n_orders_book = Client.getBidAskOrders(1)
 ord11 = Client.placeMarketOrder(2,24,"SELL_ORDER",1,por1)
 ord12 = Client.placeMarketOrder(2,29,"BUY_ORDER",3,por1)
 
+## Price history testing
+price_history_1 = Client.getPriceSeries(1)
+@test Client.getPriceSeries(1) == [99.0, 99.0, 99.0, 99.0]
+
 ## Market Maker testing
 MM_id = 1
 Client.provideLiquidity(1,-11,"SELL_ORDER",99.0,7,MM_id)
@@ -109,7 +114,7 @@ Client.hedgeTrade(1,12,"BUY_ORDER",100,MM_id)
 ask_volume_t2 = Client.getBidAskVolume(1)[2]
 ask_vol_diff = ask_volume_t1 - ask_volume_t2
 @test ask_vol_diff == 100
-@test OMS.trade_volume_t[1] == 115
+@test OMS.trade_volume_t[1] == 121
 @test OMS.trade_volume_t[1] == Client.getTradeVolume(1)
 
 ## Fractional share testing

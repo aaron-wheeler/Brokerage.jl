@@ -69,6 +69,9 @@ HTTP.register!(ROUTER, "GET", "/quote_book_volume/*", getBidAskVolume)
 getBidAskOrders(req) = Service.getBidAskOrders(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
 HTTP.register!(ROUTER, "GET", "/quote_book_orders/*", getBidAskOrders)
 
+getPriceSeries(req) = Service.getPriceSeries(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
+HTTP.register!(ROUTER, "GET", "/price_history/*", getPriceSeries)
+
 # ======================================================================================== #
 #----- MARKET MAKER ROUTING -----#
 
