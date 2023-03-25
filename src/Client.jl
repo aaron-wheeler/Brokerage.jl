@@ -122,10 +122,14 @@ end
 # ======================================================================================== #
 #----- Market Maker Functionality -----#
 
-function provideLiquidity(ticker, order_side, limit_price, limit_size, acct_id)
-    body = (; ticker, order_side, limit_price, limit_size, acct_id)
+function provideLiquidity(ticker, order_side, limit_price, limit_size, acct_id; send_id=false)
+    body = (; ticker, order_side, limit_price, limit_size, acct_id, send_id)
     resp = HTTP.post(string(SERVER[], "/liquidity"), [], JSON3.write(body))
-    return
+    if send_id == false
+        return
+    else
+        return JSON3.read(resp.body, Int64)
+    end
 end
 
 function hedgeTrade(ticker, order_side, fill_amount, acct_id)

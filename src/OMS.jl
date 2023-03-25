@@ -269,6 +269,12 @@ function provideLiquidity(order)
                         order.limit_size, order.acct_id)
         LP_order_vol[order.ticker, 1] += 1
         LP_order_vol[order.ticker, 3] += order.limit_size
+
+        if order.send_id == false
+            return
+        else
+            return order_id
+        end
     else
         # order.order_side == "SELL_ORDER"
         order_id = (ORDER_ID_COUNTER[] += 1) * -1
@@ -277,9 +283,13 @@ function provideLiquidity(order)
                         order.limit_size, order.acct_id)
         LP_order_vol[order.ticker, 2] += 1
         LP_order_vol[order.ticker, 4] += order.limit_size
+
+        if order.send_id == false
+            return
+        else
+            return order_id
+        end
     end
- 
-    return
 end
 
 function hedgeTrade(order)

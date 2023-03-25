@@ -723,7 +723,12 @@ function provideLiquidity(order)
     liquidity_order = OMS.provideLiquidity(order)
     # send confirmation
     @info "Liquidity order completed. $(order.order_side) quote processed."
-    return
+
+    if order.send_id == false
+        return
+    else
+        return liquidity_order # order_id
+    end
 end
 
 function hedgeTrade(order)
