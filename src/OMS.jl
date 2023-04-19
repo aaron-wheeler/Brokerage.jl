@@ -160,9 +160,9 @@ function processMarketOrderSale(order::MarketOrder)
     order_match_lst = trade[1]
     last_price = (last(order_match_lst)).price
     shares_leftover = trade[2]
-    shares_traded = order.share_amount - shares_leftover
+    shares_traded = (order.share_amount - shares_leftover) * -1
     collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
-    trade_volume_t[order.ticker] += shares_traded
+    trade_volume_t[order.ticker] += (shares_traded * -1)
     pushfirst!(price_buffer[order.ticker], last_price)
     return order_match_lst, shares_leftover
 end
@@ -194,8 +194,9 @@ function processMarketOrderSale_byfunds(order::MarketOrder)
         matched_order = order_match_lst[i]
         shares_traded += matched_order.size
     end
+    shares_traded = (shares_traded * -1)
     collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
-    trade_volume_t[order.ticker] += shares_traded
+    trade_volume_t[order.ticker] += (shares_traded * -1)
     pushfirst!(price_buffer[order.ticker], last_price)
     return trade
 end
@@ -314,9 +315,9 @@ function hedgeTrade(order)
         order_match_lst = trade[1]
         last_price = (last(order_match_lst)).price
         shares_leftover = trade[2]
-        shares_traded = order.fill_amount - shares_leftover
+        shares_traded = (order.fill_amount - shares_leftover) * -1
         collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
-        trade_volume_t[order.ticker] += shares_traded
+        trade_volume_t[order.ticker] += (shares_traded * -1)
         pushfirst!(price_buffer[order.ticker], last_price)
     end
  

@@ -158,13 +158,22 @@ function update(portfolio)
 end
 
 function update_holdings(id, holdings)
-    user = Contexts.getuser()
+    # user = Contexts.getuser()
+    cursor = execute("SELECT userid FROM holdings WHERE portfolio_id = ?", (id,))
+    user_table = cursor |> columntable
+    user_id = user_table[:userid][1]
+    # execute("""
+    #     DELETE FROM holdings WHERE portfolio_id = ? AND userid = ?
+    # """, (id, user.id))
     execute("""
         DELETE FROM holdings WHERE portfolio_id = ? AND userid = ?
-    """, (id, user.id))
+    """, (id, user_id))
+    # execute("""
+    #     INSERT INTO holdings (portfolio_id, userid, ticker, shares) VALUES (?, ?, ?, ?)
+    # """, ([id for _ = 1:length(holdings)], [user.id for _ = 1:length(holdings)], [String(i) for i in keys(holdings)], [i for i in values(holdings)]); executemany=true)
     execute("""
         INSERT INTO holdings (portfolio_id, userid, ticker, shares) VALUES (?, ?, ?, ?)
-    """, ([id for _ = 1:length(holdings)], [user.id for _ = 1:length(holdings)], [String(i) for i in keys(holdings)], [i for i in values(holdings)]); executemany=true)
+    """, ([id for _ = 1:length(holdings)], [user_id for _ = 1:length(holdings)], [String(i) for i in keys(holdings)], [i for i in values(holdings)]); executemany=true)
     return
 end
 
@@ -189,8 +198,9 @@ end
 #     """, (id, user.id)))
 # end
 function getHoldings(id)
-    user = Contexts.getuser()
-    cursor = execute("SELECT ticker, shares FROM holdings WHERE portfolio_id = ? AND userid = ?", (id, user.id))
+    # user = Contexts.getuser()
+    # cursor = execute("SELECT ticker, shares FROM holdings WHERE portfolio_id = ? AND userid = ?", (id, user.id))
+    cursor = execute("SELECT ticker, shares FROM holdings WHERE portfolio_id = ?", (id,))
     tick_share_table = cursor |> columntable # returns NamedTuple of holdings
     ticker_keys = Tuple(Symbol.(tick_share_table[:ticker]))
     share_vals = Tuple(tick_share_table[:shares])
