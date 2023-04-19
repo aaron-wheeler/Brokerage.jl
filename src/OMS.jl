@@ -293,35 +293,34 @@ function provideLiquidity(order)
     end
 end
 
-function hedgeTrade(order)
-    if order.order_side == "BUY_ORDER"
-        trade = VLLimitOrderBook.submit_market_order!(ob[order.ticker],BUY_ORDER,
-                        order.fill_amount)
-        # collect market data
-        bid, ask = VLLimitOrderBook.best_bid_ask(ob[order.ticker])
-        order_match_lst = trade[1]
-        last_price = (last(order_match_lst)).price
-        shares_leftover = trade[2]
-        shares_traded = order.fill_amount - shares_leftover
-        collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
-        trade_volume_t[order.ticker] += shares_traded
-        pushfirst!(price_buffer[order.ticker], last_price)
-    else
-        # order.order_side == "SELL_ORDER"
-        trade = VLLimitOrderBook.submit_market_order!(ob[order.ticker],SELL_ORDER,
-                        order.fill_amount)
-        # collect market data
-        bid, ask = VLLimitOrderBook.best_bid_ask(ob[order.ticker])
-        order_match_lst = trade[1]
-        last_price = (last(order_match_lst)).price
-        shares_leftover = trade[2]
-        shares_traded = (order.fill_amount - shares_leftover) * -1
-        collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
-        trade_volume_t[order.ticker] += (shares_traded * -1)
-        pushfirst!(price_buffer[order.ticker], last_price)
-    end
- 
-    return
+function hedgeTradePurchase(order)
+    trade = VLLimitOrderBook.submit_market_order!(ob[order.ticker],BUY_ORDER,
+                    order.fill_amount)
+    # collect market data
+    bid, ask = VLLimitOrderBook.best_bid_ask(ob[order.ticker])
+    order_match_lst = trade[1]
+    last_price = (last(order_match_lst)).price
+    shares_leftover = trade[2]
+    shares_traded = order.fill_amount - shares_leftover
+    collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+    trade_volume_t[order.ticker] += shares_traded
+    pushfirst!(price_buffer[order.ticker], last_price)
+    return order_match_lst, shares_leftover
+end
+
+function hedgeTradeSale(order)
+    trade = VLLimitOrderBook.submit_market_order!(ob[order.ticker],SELL_ORDER,
+                    order.fill_amount)
+    # collect market data
+    bid, ask = VLLimitOrderBook.best_bid_ask(ob[order.ticker])
+    order_match_lst = trade[1]
+    last_price = (last(order_match_lst)).price
+    shares_leftover = trade[2]
+    shares_traded = (order.fill_amount - shares_leftover) * -1
+    collect_tick_data(order.ticker, bid, ask, last_price, shares_traded)
+    trade_volume_t[order.ticker] += (shares_traded * -1)
+    pushfirst!(price_buffer[order.ticker], last_price)
+    return order_match_lst, shares_leftover
 end
 
 function queryTradeVolume(ticker)

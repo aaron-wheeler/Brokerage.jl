@@ -732,7 +732,49 @@ function provideLiquidity(order)
 end
 
 function hedgeTrade(order)
-    hedge_trade = OMS.hedgeTrade(order)
+    # route and process market order
+    if order.order_side == "BUY_ORDER"
+        order_match_lst, shares_leftover = OMS.hedgeTradePurchase(order)
+
+        # update portfolio cash of matched seller(s)
+        for i in 1:length(order_match_lst)
+            matched_order = order_match_lst[i]
+            # check if matched order is native to Brokerage (e.g., not from a market maker)
+            if matched_order.acctid > Mapper.MM_COUNTER
+                earnings = matched_order.size * matched_order.price
+                cash = Mapper.getCash(matched_order.acctid)
+                updated_cash = earnings + cash
+                Mapper.update_cash(matched_order.acctid, updated_cash)
+                # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            else
+                continue
+            end
+        end
+    else
+        # order.order_side == "SELL_ORDER"
+        order_match_lst, shares_leftover = OMS.hedgeTradeSale(order)
+
+        # update portfolio holdings{tickers, shares} of matched buyer(s)
+        for i in 1:length(order_match_lst)
+            matched_order = order_match_lst[i]
+            # check if matched order is native to Brokerage (e.g., not from a market maker)
+            if matched_order.acctid > Mapper.MM_COUNTER
+                holdings = Mapper.getHoldings(matched_order.acctid)
+                ticker = order.ticker
+                shares_owned = get(holdings, Symbol("$ticker"), 0)
+                new_shares = matched_order.size + shares_owned
+                tick_key = (Symbol(ticker),)
+                share_val = (new_shares,)
+                new_holdings = (; zip(tick_key, share_val)...)
+                updated_holdings = merge(holdings, new_holdings)
+                Mapper.update_holdings(matched_order.acctid, updated_holdings)
+                # TODO: remove from matched_order.orderid pendingorders and into completedorders
+            else
+                continue
+            end
+        end
+    end
+
     # send confirmation
     @info "Hedge trade completed. $(order.order_side) order processed."
     return
