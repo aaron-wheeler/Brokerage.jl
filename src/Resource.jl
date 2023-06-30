@@ -3,7 +3,7 @@ module Resource
 
 using Dates, HTTP, JSON3, Sockets
 # .. means use this package as defined in the top level scope (as opposed to include())
-using ..Model, ..Service, ..Auth, ..Contexts, ..Workers
+using ..Model, ..Service, ..Auth, ..Contexts
 
 const ROUTER = HTTP.Router()
 
@@ -29,14 +29,6 @@ HTTP.register!(ROUTER, "PUT", "/portfolio/*", updatePortfolio) # PUT aka updatin
 
 deletePortfolio(req) = Service.deletePortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
 HTTP.register!(ROUTER, "DELETE", "/portfolio/*", deletePortfolio)
-
-# nothing passed in by the client here, service layer does all the logic
-# want this handled asynchronously in background threads and not thread 1
-# Workers.jl - workers are assigned the pickRandomPortfolio function, and then we fetch the result of that
-# fetch is happening on thread 1 but is non-blocking, it will wait and task switch until 
-# the background thread is done doing the work, it will return to thread 1 which does fast serialize/deserialize
-pickRandomPortfolio(req) = fetch(Workers.@async(Service.pickRandomPortfolio()::Portfolio))
-HTTP.register!(ROUTER, "GET", "/", pickRandomPortfolio)
 
 # ======================================================================================== #
 #----- ORDER ROUTING -----#

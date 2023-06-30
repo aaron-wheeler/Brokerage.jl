@@ -3,7 +3,6 @@ module Service
 
 using Dates, ExpiringCaches
 using ..Model, ..Mapper, ..Auth, ..OMS
-# using ..Model, ..NormalizedMapper, ..Auth
 
 # prepare recyclable clearing price estimation vectors
 max_depth = 5
@@ -17,14 +16,9 @@ ask_book_price = zeros(Float64, max_depth)
 function createPortfolio(obj)
     @assert haskey(obj, :name) && !isempty(obj.name)
     @assert haskey(obj, :holdings) && !isempty(obj.holdings)
-    # @assert haskey(obj, :ticker) && !isempty(obj.ticker)
-    # @assert haskey(obj, :shares) && !isempty(obj.shares)
     @assert haskey(obj, :cash) && 1.0 < obj.cash
     portfolio = Portfolio(obj.name, obj.cash, obj.holdings)
-    # portfolio = Portfolio(obj.name, obj.cash, obj.ticker, obj.shares)
     Mapper.create!(portfolio)
-    # NormalizedMapper.create!(portfolio)
-    # return portfolio
     return portfolio.id
 end
 
@@ -50,31 +44,15 @@ end
 #     portfolio.cash = updated.cash
 #     portfolio.holdings = updated.holdings
 #     Mapper.update(portfolio)
-#     # NormalizedMapper.update(portfolio)
 #     delete!(ExpiringCaches.getcache(getPortfolio), (id,))
 #     return portfolio
 # end
 
 function deletePortfolio(id)
     Mapper.delete(id)
-    # NormalizedMapper.delete(id)
-    delete!(ExpiringCaches.getcache(getPortfolio), (id,))
+    # delete!(ExpiringCaches.getcache(getPortfolio), (id,))
     return
 end
-
-# function pickRandomPortfolio()
-#     portfolios = Mapper.getAllPortfolios()
-#     # portfolios = NormalizedMapper.getAllPortfolios()
-#     leastTimesPicked = minimum(x->x.timespicked, portfolios)
-#     leastPickedPortfolio = filter(x->x.timespicked == leastTimesPicked, portfolios)
-#     pickedPortfolio = rand(leastPickedPortfolio)
-#     pickedPortfolio.timespicked += 1
-#     Mapper.update(pickedPortfolio)
-#     # NormalizedMapper.update(pickedPortfolio)
-#     delete!(ExpiringCaches.getcache(getPortfolio), (pickedPortfolio.id,))
-#     @info "picked portfolio = $(pickedPortfolio.name) on thread = $(Threads.threadid())"
-#     return pickedPortfolio
-# end
 
 # creates User struct defined in Model.jl
 function createUser(user)
@@ -82,14 +60,12 @@ function createUser(user)
     @assert haskey(user, :password) && !isempty(user.password)
     user = User(user.username, user.password)
     Mapper.create!(user)
-    # NormalizedMapper.create!(user)
     return user
 end
 
 # done this way so that we can persist user
 function loginUser(user)
     persistedUser = Mapper.get(user)
-    # persistedUser = NormalizedMapper.get(user)
     if persistedUser.password == user.password
         persistedUser.password = ""
         return persistedUser

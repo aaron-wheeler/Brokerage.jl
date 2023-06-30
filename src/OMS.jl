@@ -1,5 +1,6 @@
 module OMS
-# Order Management Systems (OMS) - order processing and interface with Exchange service layer
+# Order Management Systems (OMS) - order processing and interface with Exchange (order book) service layer
+# Order books hosted here for now
 
 using ..Model
 using VLLimitOrderBook, Dates, CSV, DataFrames, Random, DataStructures
