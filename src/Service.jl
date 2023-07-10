@@ -288,6 +288,11 @@ function getPriceSeries(ticker)
     return price_list
 end
 
+function getMarketSchedule()
+    market_schedule = OMS.queryMarketSchedule()
+    return market_schedule
+end
+
 # ======================================================================================== #
 #----- Trade Services -----#
 

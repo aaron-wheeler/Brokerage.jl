@@ -1,4 +1,4 @@
-using Test, Brokerage
+using Test, Dates, Brokerage
 
 # init database; to init with a new database -> "../test/newdbname.sqlite" 
 const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/portfolios.sqlite")
@@ -7,6 +7,8 @@ const AUTHFILE = "file://" * joinpath(dirname(pathof(Brokerage)), "../resources/
 # init LOB
 OMS.NUM_ASSETS[] = 2
 OMS.PRICE_BUFFER_CAPACITY[] = 100
+OMS.MARKET_OPEN_T[] = Dates.now() + Dates.Minute(1) # DateTime(2022,7,19,13,19,41,036)
+OMS.MARKET_CLOSE_T[] = OMS.MARKET_OPEN_T[] + Dates.Minute(10)
 OMS.init_LOB!(OMS.ob, OMS.LP_order_vol, OMS.LP_cancel_vol, OMS.trade_volume_t, OMS.price_buffer)
 
 # init server
@@ -109,6 +111,10 @@ ord10 = Client.placeMarketOrder(2,"BUY_ORDER",3,por1)
 ## Price history testing
 price_history_1 = Client.getPriceSeries(1)
 @test Client.getPriceSeries(1) == [99.0, 99.0, 99.0, 99.0]
+
+## Market schedule testing
+market_open, market_close = Client.getMarketSchedule()
+@test market_open < market_close
 
 ## Market Maker testing
 MM_id = 1

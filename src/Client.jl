@@ -1,6 +1,6 @@
 module Client
 
-using HTTP, JSON3, Base64, VLLimitOrderBook, AVLTrees
+using HTTP, JSON3, Base64, VLLimitOrderBook, AVLTrees, Dates
 using ..Model
 
 # server running on same host as client, listening on port 8080
@@ -108,6 +108,11 @@ end
 function getPriceSeries(ticker) # returns price series vector
     resp = HTTP.get(string(SERVER[], "/price_history/$ticker"))
     return JSON3.read(resp.body, Vector{Float64})
+end
+
+function getMarketSchedule() # returns tuple of market open and close times
+    resp = HTTP.get(string(SERVER[], "/market_schedule"))
+    return JSON3.read(resp.body, Tuple{DateTime, DateTime})
 end
 
 # ======================================================================================== #

@@ -8,6 +8,8 @@ using VLLimitOrderBook, Dates, CSV, DataFrames, Random, DataStructures
 const NUM_ASSETS = Ref{Int64}(0)
 const PRICE_BUFFER_CAPACITY = Ref{Int64}(0)
 const ORDER_ID_COUNTER = Ref{Int64}(0)
+const MARKET_OPEN_T = Ref{DateTime}(Dates.now())
+const MARKET_CLOSE_T = Ref{DateTime}(Dates.now())
 
 # ======================================================================================== #
 #----- LOB INITIALIZATION -----#
@@ -258,6 +260,11 @@ end
 function queryPriceSeries(ticker)
     price_list = convert(Vector{Float64}, price_buffer[ticker])
     return price_list
+end
+
+function queryMarketSchedule()
+    market_schedule = (MARKET_OPEN_T[], MARKET_CLOSE_T[])
+    return market_schedule
 end
 
 # ======================================================================================== #
