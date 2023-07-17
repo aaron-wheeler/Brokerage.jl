@@ -3,6 +3,7 @@ using Test, Dates, Brokerage
 # init database; to init with a new database -> "../test/newdbname.sqlite" 
 const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/portfolios.sqlite")
 const AUTHFILE = "file://" * joinpath(dirname(pathof(Brokerage)), "../resources/authkeys.json")
+Mapper.MM_COUNTER[] = 30 # arbitrary example
 
 # init LOB
 OMS.NUM_ASSETS[] = 2

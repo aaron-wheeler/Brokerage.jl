@@ -7,7 +7,7 @@ using SQLite, DBInterface, Strapping, Tables
 # pod is a specific key to a pool of SQLite database connections
 const DB_POOL = Ref{ConnectionPools.Pod{ConnectionPools.Connection{SQLite.DB}}}()
 const PORTFOLIO_COUNTER = Ref{Int64}(0)
-const MM_COUNTER = 30 # reserved IDs for non-native (e.g., market maker) orders
+const MM_COUNTER = Ref{Int64}(0) # reserved IDs for non-native (e.g., market maker) orders
 
 # define the relational database so that we store holdings Vector as seperate table
 # we use these database connections to store the objects we defined in Model.jl
@@ -16,7 +16,7 @@ const MM_COUNTER = 30 # reserved IDs for non-native (e.g., market maker) orders
 function init(dbfile)
     new = () -> SQLite.DB(dbfile)
     DB_POOL[] = ConnectionPools.Pod(SQLite.DB, Threads.nthreads(), 60, 1000, new)
-    PORTFOLIO_COUNTER[] += MM_COUNTER
+    PORTFOLIO_COUNTER[] += MM_COUNTER[]
     if !isfile(dbfile)
         db = SQLite.DB(dbfile)
         # TODO: Make portfolio id UNIQUE

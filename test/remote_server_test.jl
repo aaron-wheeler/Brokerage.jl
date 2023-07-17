@@ -2,6 +2,7 @@ using Brokerage, Dates, Sockets
 
 const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/portfolio.sqlite")
 const AUTHFILE = "file://" * joinpath(dirname(pathof(Brokerage)), "../resources/authkeys.json")
+Mapper.MM_COUNTER[] = 30
 OMS.NUM_ASSETS[] = 1
 OMS.PRICE_BUFFER_CAPACITY[] = 100
 OMS.MARKET_OPEN_T[] = Dates.now() + Dates.Minute(1) # DateTime(2022,7,19,13,19,41,036)
