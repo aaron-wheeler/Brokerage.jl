@@ -29,7 +29,7 @@ rand_side() = rand([BUY_ORDER,SELL_ORDER])
 # Create and populate order book vectors
 ob = Vector{OrderBook{Int64, Float64, Int64, Int64}}()
 
-# Initialize Limit Order Book(s)
+# Initialize Limit Order Book(s) (with default mid-price of 99.0)
 function init_LOB!(ob, LP_order_vol, LP_cancel_vol, trade_volume_t, price_buffer)
     @info "Connecting to Exchange and initializing Limit Order Book..."
     N = NUM_ASSETS[]
@@ -47,6 +47,40 @@ function init_LOB!(ob, LP_order_vol, LP_cancel_vol, trade_volume_t, price_buffer
             # add some limit orders (to increase long-range depth of book)
             submit_limit_order!(ob_tick,init_orderid,BUY_ORDER,99.0-randspread_large(),rand(50:50:500),init_acctid)
             submit_limit_order!(ob_tick,init_orderid,SELL_ORDER,99.0+randspread_large(),rand(50:50:500),init_acctid)
+            if (rand() < 0.1) # and some market orders
+                submit_market_order!(ob_tick,rand_side(),rand(10:25:150))
+            end
+        end
+        push!(ob, ob_tick)
+        # append liquidity provider data structures
+        push!(LP_order_vol, zeros(Int64, 4))
+        push!(LP_cancel_vol, zeros(Int64, 4))
+        push!(trade_volume_t, 0)
+        # create and store circular buffer for specific ticker
+        price_buffer_tick = CircularBuffer{Float64}(PRICE_BUFFER_CAPACITY[])
+        push!(price_buffer, price_buffer_tick)
+    end
+    @info "Exchange Connection successful. Limit Order Book initialization sequence complete."
+end
+
+# Initialize Limit Order Book(s) (with user-defined mid-prices)
+function init_LOB!(ob, init_price, LP_order_vol, LP_cancel_vol, trade_volume_t, price_buffer)
+    @info "Connecting to Exchange and initializing Limit Order Book..."
+    N = NUM_ASSETS[]
+    for ticker in 1:N
+        # Create order book for specific ticker
+        ob_tick = MyLOBType() # Initialize empty order book
+        # fill book with random limit orders
+        for i=1:20
+            # add some limit orders (near top of book)
+            submit_limit_order!(ob_tick,init_orderid,BUY_ORDER,(init_price[ticker]-randspread_small()),rand(5:5:20),init_acctid)
+            submit_limit_order!(ob_tick,init_orderid,SELL_ORDER,(init_price[ticker]+randspread_small()),rand(5:5:20),init_acctid)
+            # add some limit orders (to increase mid-range depth of book)
+            submit_limit_order!(ob_tick,init_orderid,BUY_ORDER,(init_price[ticker]-randspread_mid()),rand(10:10:100),init_acctid)
+            submit_limit_order!(ob_tick,init_orderid,SELL_ORDER,(init_price[ticker]+randspread_mid()),rand(10:10:100),init_acctid)
+            # add some limit orders (to increase long-range depth of book)
+            submit_limit_order!(ob_tick,init_orderid,BUY_ORDER,(init_price[ticker]-randspread_large()),rand(50:50:500),init_acctid)
+            submit_limit_order!(ob_tick,init_orderid,SELL_ORDER,(init_price[ticker]+randspread_large()),rand(50:50:500),init_acctid)
             if (rand() < 0.1) # and some market orders
                 submit_market_order!(ob_tick,rand_side(),rand(10:25:150))
             end
