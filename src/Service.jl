@@ -22,6 +22,23 @@ function createPortfolio(obj)
     return portfolio.id
 end
 
+function createSeveralPortfolios(obj)
+    @assert obj.min_cash < obj.max_cash
+    @assert obj.min_holdings < obj.max_holdings
+    for i in 1:obj.num_users
+        name = "$(obj.name) $(i)"
+        cash = rand(obj.min_cash:0.01:obj.max_cash)
+        holdings = Dict{Symbol, Int64}()
+        for ticker in 1:OMS.NUM_ASSETS[]
+            init_shares = rand(obj.min_holdings:1:obj.max_holdings)
+            holdings[Symbol("$(ticker)")] = init_shares
+        end
+        portfolio = Portfolio(name, cash, holdings)
+        Mapper.create!(portfolio)
+    end
+    return
+end
+
 # @cacheable Dates.Hour(1) function getPortfolio(id::Int64)::Portfolio
 #     Mapper.get(id)
 #     # NormalizedMapper.get(id)

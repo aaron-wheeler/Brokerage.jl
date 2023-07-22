@@ -15,6 +15,9 @@ const ROUTER = HTTP.Router()
 createPortfolio(req) = Service.createPortfolio(JSON3.read(req.body)) # requestHandler function
 HTTP.register!(ROUTER, "POST", "/portfolio", createPortfolio) # when the method is post, we call the above function
 
+createSeveralPortfolios(req) = Service.createSeveralPortfolios(JSON3.read(req.body))
+HTTP.register!(ROUTER, "POST", "/several_portfolios", createSeveralPortfolios)
+
 # getPortfolio(req) = Service.getPortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]))::Portfolio
 # HTTP.register!(ROUTER, "GET", "/portfolio/*", getPortfolio) # asterick here means match anything after the '/'
 getHoldings(req) = Service.getHoldings(parse(Int, HTTP.URIs.splitpath(req.target)[2]))

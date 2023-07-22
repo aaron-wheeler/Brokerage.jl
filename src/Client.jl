@@ -31,6 +31,12 @@ function createPortfolio(name, cash, holdings)
     return JSON3.read(resp.body, Int64)
 end
 
+function createSeveralPortfolios(num_users, name, min_cash, max_cash, min_holdings, max_holdings)
+    body = (; num_users, name, min_cash, max_cash, min_holdings, max_holdings) 
+    resp = HTTP.post(string(SERVER[], "/several_portfolios"), [], JSON3.write(body))
+    return
+end
+
 function getHoldings(id)
     resp = HTTP.get(string(SERVER[], "/portfolio_holdings/$id"))
     return JSON3.read(resp.body, NamedTuple)
