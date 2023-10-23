@@ -1,6 +1,12 @@
 module OMS
-# Order Management Systems (OMS) - order processing and interface with Exchange (order book) service layer
-# Order books hosted here for now
+#=
+    OMS.jl: Order Management Systems (OMS)
+
+- The following functions handle any order processing from the service layer and acts as an
+  interface with the Exchange (order book) layer
+- Exchange/Order books hosted here (for now)
+- This layer also handles any data collection and storage
+=#
 
 using ..Model
 using VLLimitOrderBook, Dates, CSV, DataFrames, Random, DataStructures

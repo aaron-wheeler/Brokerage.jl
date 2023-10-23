@@ -10,5 +10,5 @@ Documentation for [Brokerage](https://github.com/aaron-wheeler/Brokerage.jl).
 ```
 
 ```@autodocs
-Modules = [Brokerage]
+Modules = [Brokerage, Client]
 ```

@@ -1,8 +1,16 @@
 module Resource
-# this module defines server-side stuff
+#=
+    Resource.jl: this module/layer defines server-side stuff
+
+- The following functions mirror the requests defined in Client.jl
+- The functions here will pass a request `req` from the client, into the service layer
+- JSON3 will translate the http message into json and parse the request message body for
+  the service layer
+=#
 
 using Dates, HTTP, JSON3, Sockets
-# .. means use this package as defined in the top level scope (as opposed to include())
+
+# `..` means use this layer as defined in the top level scope (as opposed to include())
 using ..Model, ..Service, ..Auth, ..Contexts
 
 const ROUTER = HTTP.Router()
@@ -10,25 +18,21 @@ const ROUTER = HTTP.Router()
 # ======================================================================================== #
 #----- ACCOUNT ROUTING -----#
 
-# the createPortfolio function will pass a request `req` from the client, into the service layer
-# JSON3 will translate the http message into json and parse the request message body for the service layer
 createPortfolio(req) = Service.createPortfolio(JSON3.read(req.body)) # requestHandler function
 HTTP.register!(ROUTER, "POST", "/portfolio", createPortfolio) # when the method is post, we call the above function
 
 createSeveralPortfolios(req) = Service.createSeveralPortfolios(JSON3.read(req.body))
 HTTP.register!(ROUTER, "POST", "/several_portfolios", createSeveralPortfolios)
 
-# getPortfolio(req) = Service.getPortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]))::Portfolio
-# HTTP.register!(ROUTER, "GET", "/portfolio/*", getPortfolio) # asterick here means match anything after the '/'
 getHoldings(req) = Service.getHoldings(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
 HTTP.register!(ROUTER, "GET", "/portfolio_holdings/*", getHoldings) # asterick here means match anything after the '/'
 
 getCash(req) = Service.getCash(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
 HTTP.register!(ROUTER, "GET", "/portfolio_cash/*", getCash)
 
-# the Portfolio must be passed in by the client here 
-updatePortfolio(req) = Service.updatePortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]), JSON3.read(req.body, Portfolio))::Portfolio
-HTTP.register!(ROUTER, "PUT", "/portfolio/*", updatePortfolio) # PUT aka updating something here 
+## TODO: implement updatePortfolio function
+# updatePortfolio(req) = Service.updatePortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]), JSON3.read(req.body, Portfolio))::Portfolio
+# HTTP.register!(ROUTER, "PUT", "/portfolio/*", updatePortfolio) # PUT aka updating something here 
 
 deletePortfolio(req) = Service.deletePortfolio(parse(Int, HTTP.URIs.splitpath(req.target)[2]))
 HTTP.register!(ROUTER, "DELETE", "/portfolio/*", deletePortfolio)
@@ -36,8 +40,7 @@ HTTP.register!(ROUTER, "DELETE", "/portfolio/*", deletePortfolio)
 # ======================================================================================== #
 #----- ORDER ROUTING -----#
 
-# placeLimitOrder(req) = Service.placeLimitOrder(JSON3.read(req.body))::LimitOrder
-placeLimitOrder(req) = Service.placeLimitOrder(JSON3.read(req.body, NamedTuple))
+placeLimitOrder(req) = Service.placeLimitOrder(JSON3.read(req.body, NamedTuple)) #::LimitOrder
 HTTP.register!(ROUTER, "POST", "/l_order", placeLimitOrder)
 
 placeMarketOrder(req) = Service.placeMarketOrder(JSON3.read(req.body, NamedTuple))
@@ -96,9 +99,11 @@ HTTP.register!(ROUTER, "POST", "/c_liquidity", cancelQuote)
 
 # ======================================================================================== #
 
-# uses 'withcontext' function from Contexts.jl
-# passes in 'User' function from Auth.jl
-# if User is valid (authenticated) then this will work and we can use original requestHandler functions 
+#=
+Uses 'withcontext' function from Contexts.jl
+Passes in 'User' function from Auth.jl
+if User is valid (authenticated) then this will work and we can use original requestHandler functions 
+=#
 function contextHandler(req)
     withcontext(User(req)) do
         HTTP.Response(200, JSON3.write(ROUTER(req)))
@@ -113,37 +118,43 @@ function authenticate(user::User)
     return Auth.addtoken!(resp, user)
 end
 
-# In Service.jl, it creates and returns the User struct defined in Model.jl
-# it also uses "create!()" from Mapper.jl to write it into the database
-# the User struct is passed into authenticate() and addtoken!() from Auth.jl
-# this will return the response with a set header of the signed token (cookie)
+#=
+In Service.jl, it creates and returns the User struct defined in Model.jl
+it also uses "create!()" from Mapper.jl to write it into the database
+the User struct is passed into authenticate() and addtoken!() from Auth.jl
+this will return the response with a set header of the signed token (cookie)
+=#
 createUser(req) = authenticate(Service.createUser(JSON3.read(req.body))::User)
 HTTP.register!(AUTH_ROUTER, "POST", "/user", createUser)
 
-# In Service.jl, it passes the User struct to get() from Mapper.jl
-# get() passes the struct.username into DBInterface.execute() which
-# returns a single DBInterface.Cursor object which represents
-# a single resultset from the database. Strapping.jl then uses
-# the cursor object to construct and return a Julia Struct.
-# This Julia Struct should be a persisted "aka already created" user
+#=
+In Service.jl, it passes the User struct to get() from Mapper.jl
+get() passes the struct.username into DBInterface.execute() which
+returns a single DBInterface.Cursor object which represents
+a single resultset from the database. Strapping.jl then uses
+the cursor object to construct and return a Julia Struct.
+This Julia Struct should be a persisted "aka already created" user
+=#
 loginUser(req) = authenticate(Service.loginUser(JSON3.read(req.body, User))::User)
 HTTP.register!(AUTH_ROUTER, "POST", "/user/login", loginUser)
 
-# HTTP RequestHandler middleware
-# takes in request and routes it to the appropriate requestHandler function
-# will need to adapt this to Http Streams -> streamHandler(req, resp)
+#=
+HTTP RequestHandler middleware
+takes in request and routes it to the appropriate requestHandler function
+will need to adapt this to Http Streams -> streamHandler(req, resp)
+=#
 function requestHandler(req)
     start = Dates.now(Dates.UTC)
     @info (timestamp=start, event="ServiceRequestBegin", tid=Threads.threadid(), method=req.method, target=req.target)
     local resp
     try
-        resp = AUTH_ROUTER(req) # passing in RequestHandler (eventually change to StreamHandler?) and request
+        resp = AUTH_ROUTER(req) # passing in HTTP RequestHandler and request
     catch e
         if e isa Auth.Unauthenticated
             resp = HTTP.Response(401)
         elseif e isa Service.InsufficientFunds || e isa Service.InsufficientShares
             @warn "Order not processed. Insufficient resources."
-            resp = HTTP.Response(204) # 2xx status code to avoid interupting process
+            resp = HTTP.Response(204) # force 2xx status code to avoid interupting process
         else
             s = IOBuffer()
             showerror(s, e, catch_backtrace(); backtrace=true)
@@ -158,7 +169,6 @@ function requestHandler(req)
 end
 
 # start up local server and listen to anyone from port 8080 from my machine
-# for handling streams, add argument streams=true
 function run()
     HTTP.serve(requestHandler, "0.0.0.0", 8080)
 end

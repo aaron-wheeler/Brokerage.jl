@@ -9,17 +9,18 @@ const DB_POOL = Ref{ConnectionPools.Pod{ConnectionPools.Connection{SQLite.DB}}}(
 const PORTFOLIO_COUNTER = Ref{Int64}(0)
 const MM_COUNTER = Ref{Int64}(0) # reserved IDs for non-native (e.g., market maker) orders
 
-# define the relational database so that we store holdings Vector as seperate table
-# we use these database connections to store the objects we defined in Model.jl
-# database config options in 2nd line of function correspond to Pod Struct defined in ConnectionPools.jl
-# the additional execute methods create indices on the columns we'll be filtering on (helps with speed)
+#=
+define the relational database so that we store holdings Vector as seperate table
+we use these database connections to store the objects we defined in Model.jl
+database config options in 2nd line of function correspond to Pod Struct defined in ConnectionPools.jl
+the additional execute methods create indices on the columns we'll be filtering on (helps with latency)
+=#
 function init(dbfile)
     new = () -> SQLite.DB(dbfile)
     DB_POOL[] = ConnectionPools.Pod(SQLite.DB, Threads.nthreads(), 60, 1000, new)
     PORTFOLIO_COUNTER[] += MM_COUNTER[]
     if !isfile(dbfile)
         db = SQLite.DB(dbfile)
-        # TODO: Make portfolio id UNIQUE
         DBInterface.execute(db, """
             CREATE TABLE portfolio (
                 id INTEGER,
@@ -142,6 +143,7 @@ function update(portfolio)
         SET transaction_id = ?
         WHERE portfolio_id = ? AND userid = ?
     """, (portfolio.pendingorders, [portfolio.id for _ = 1:length(portfolio.pendingorders)], [user.id for _ = 1:length(portfolio.pendingorders)]); executemany=true)
+    # TODO: Implement logic for this
     # update completedorders
     # execute("""
     #     DELETE FROM completedorders WHERE portfolio_id = ? AND userid = ?

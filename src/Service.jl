@@ -1,7 +1,15 @@
 module Service
-# perform the services defined in the Resource layer and validate inputs
+#=
+    Service.jl: perform the services defined in the Resource layer and validate inputs
+
+- The following functions mirror the routing methods defined in Resource.jl
+- The functions here are called by the routing methods and define the logic needed to
+  service the request or pass it along to the OMS layer
+=#
 
 using Dates, ExpiringCaches
+
+# `..` means use this layer as defined in the top level scope (as opposed to include())
 using ..Model, ..Mapper, ..Auth, ..OMS
 
 # prepare recyclable clearing price estimation vectors
@@ -53,6 +61,7 @@ function getCash(id::Int64)
     return cash
 end
 
+## TODO: implement updatePortfolio function
 # consistent with model struct, not letting client define their own id, we manage these as a service
 # function updatePortfolio(id, updated)
 #     portfolio = Mapper.get(id)

@@ -1,7 +1,9 @@
 module Brokerage
 
+# export microservice layers
 export Model, Mapper, OMS, Service, Resource, Client
 
+# load packages
 include("ConnectionPools.jl")
 using .ConnectionPools
 
@@ -29,15 +31,15 @@ using .Resource
 include("Client.jl")
 using .Client
 
+# initialize server locally; used for testing and debugging
 function run(dbfile, authkeysfile)
-    # Workers.init()
     Mapper.init(dbfile)
     Auth.init(authkeysfile)
     Resource.run()
 end
 
+# initialize server remotely; used for deployment
 function remote_run(dbfile, authkeysfile)
-    # Workers.init()
     Mapper.init(dbfile)
     Auth.init(authkeysfile)
     Resource.remote_run()
