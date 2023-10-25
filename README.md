@@ -1,6 +1,6 @@
 # Brokerage
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://aaron-wheeler.github.io/Brokerage.jl/stable/)
+<!-- [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://aaron-wheeler.github.io/Brokerage.jl/stable/) -->
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://aaron-wheeler.github.io/Brokerage.jl/dev/)
 [![Build Status](https://github.com/aaron-wheeler/Brokerage.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/aaron-wheeler/Brokerage.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
@@ -23,14 +23,6 @@ Brokerage.jl is implemented as a microservice-based application over REST API. T
 
 ### Installing Julia
 This package uses the [Julia](https://julialang.org) programming language. You can find the installation instructions for Julia [here](https://julialang.org/downloads/).
-
-<!-- ### Installing Brokerage.jl
-To install this package from the [Julia REPL](https://docs.julialang.org/en/v1/stdlib/REPL/) press the `]` key to enter [pkg mode](https://pkgdocs.julialang.org/v1/repl/) and the issue the command:
-
-```julia
-Pkg.add("https://github.com/aaron-wheeler/Brokerage.jl.git")
-``` 
--->
 
 ## Usage
 Clone the repository
