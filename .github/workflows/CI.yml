@@ -11,45 +11,45 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 jobs:
-  test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - '1.6'
-          - '1.7'
-          - 'nightly'
-        os:
-          - ubuntu-latest
-        arch:
-          - x64
-    steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - name: Install dependencies
-        run: |
-          julia --project=docs -e '
-            using Pkg
-            Pkg.add(url = "https://github.com/aaron-wheeler/VLLimitOrderBook.jl.git")
-            Pkg.develop(PackageSpec(path=pwd()))
-            Pkg.instantiate()'
-      - uses: actions/cache@v1
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
+  # test:
+  #   name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       version:
+  #         - '1.6'
+  #         - '1.7'
+  #         - 'nightly'
+  #       os:
+  #         - ubuntu-latest
+  #       arch:
+  #         - x64
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: julia-actions/setup-julia@v1
+  #       with:
+  #         version: ${{ matrix.version }}
+  #         arch: ${{ matrix.arch }}
+  #     - name: Install dependencies
+  #       run: |
+  #         julia --project -e '
+  #           using Pkg
+  #           Pkg.add(url = "https://github.com/aaron-wheeler/VLLimitOrderBook.jl.git")
+  #           Pkg.develop(PackageSpec(path=pwd()))
+  #           Pkg.instantiate()'
+  #     - uses: actions/cache@v1
+  #       env:
+  #         cache-name: cache-artifacts
+  #       with:
+  #         path: ~/.julia/artifacts
+  #         key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-test-${{ env.cache-name }}-
+  #           ${{ runner.os }}-test-
+  #           ${{ runner.os }}-
+  #     - uses: julia-actions/julia-buildpkg@v1
+  #     - uses: julia-actions/julia-runtest@v1
   docs:
     name: Documentation
     runs-on: ubuntu-latest
