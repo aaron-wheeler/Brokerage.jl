@@ -1,15 +1,15 @@
 using Test, Dates, Brokerage
 
-# init database; to init with a new database -> "../test/newdbname.sqlite" 
+# init database; to init with a new database -> "../test/new_db_name.sqlite" 
 const DBFILE = joinpath(dirname(pathof(Brokerage)), "../test/portfolios.sqlite")
 const AUTHFILE = "file://" * joinpath(dirname(pathof(Brokerage)), "../resources/authkeys.json")
-Mapper.MM_COUNTER[] = 30 # arbitrary example
+Mapper.MM_COUNTER[] = 30 # number of accounts reserved for market makers
 
 # init LOB
-OMS.NUM_ASSETS[] = 2
-OMS.PRICE_BUFFER_CAPACITY[] = 100
-OMS.MARKET_OPEN_T[] = Dates.now() + Dates.Minute(1) # DateTime(2022,7,19,13,19,41,036)
-OMS.MARKET_CLOSE_T[] = OMS.MARKET_OPEN_T[] + Dates.Minute(10)
+OMS.NUM_ASSETS[] = 2 # number of assets
+OMS.PRICE_BUFFER_CAPACITY[] = 100 # number of price points to store
+OMS.MARKET_OPEN_T[] = Dates.now() + Dates.Minute(1) # market open time
+OMS.MARKET_CLOSE_T[] = OMS.MARKET_OPEN_T[] + Dates.Minute(10) # market close time
 OMS.init_LOB!(OMS.ob, OMS.LP_order_vol, OMS.LP_cancel_vol, OMS.trade_volume_t, OMS.price_buffer)
 
 # init server
